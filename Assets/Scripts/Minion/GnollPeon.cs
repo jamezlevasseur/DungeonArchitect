@@ -3,7 +3,8 @@ using System.Collections;
 
 public class GnollPeon : Worker {
 
-	
+	public static int foodCost = 2;
+
 	//stats
 	private int str;
 	private int agi;
@@ -18,6 +19,7 @@ public class GnollPeon : Worker {
 	private string minionName;
 	
 	//public stats
+	public override int FoodCost { get {return foodCost;} }
 	public override int STR { get {return str;} }
 	public override int AGI { get {return agi;} }
 	public override int WIS { get {return wis;} }
@@ -40,6 +42,7 @@ public class GnollPeon : Worker {
 
 	protected override void Start () {
 		base.Start ();
+		onSpawn ();
 		initStats ();
 		setUnitText ();
 		volunteerToDig ();
@@ -126,16 +129,16 @@ public class GnollPeon : Worker {
 			setupForNextDig();
 			yield return null;
 		}
-		yield return new WaitForSeconds (1);
-		int gold;
 		try {
-			targetDigNode.GetComponent<DigNode>().dig(out gold);
-			GameController.gamecontroller.dungeonGold+=gold;
-			DigNodeManager.digNodeManager.updateGraphAfterDig();
+			DigNode node = targetDigNode.GetComponent<DigNode>();
+			DungeonResources.Gold+=node.goldWorth;
+			node.dig();
 		} catch (System.NullReferenceException e) {
 			Debug.Log(e.Message);
 		}
-		yield return new WaitForSeconds (1);
+		yield return null;
+		DigNodeManager.digNodeManager.updateGrid();
+		yield return new WaitForSeconds (.5f);
 		setupForNextDig();
 		isDigging = false;
 		yield return null;
@@ -148,9 +151,17 @@ public class GnollPeon : Worker {
 			StartCoroutine("FollowPath");
 		} else {
 			Debug.Log("FAILED JOB");
-			//DigNodeManager.digNodeManager.failedJob(targetDigNode.GetComponent<DigNode>());
-			//setupForNextDig();
+			DigNodeManager.digNodeManager.failedJob(targetDigNode.GetComponent<DigNode>());
+			setupForNextDig();
 		}
+	}
+
+	public override void onSpawn () {
+		DungeonResources.Food+=foodCost;
+	}
+
+	public override void onDeath () {
+		DungeonResources.Food-=foodCost;
 	}
 
 }

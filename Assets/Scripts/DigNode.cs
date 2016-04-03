@@ -6,6 +6,7 @@ public class DigNode : MonoBehaviour {
 	public enum NodeType {normal,gold,undiggable}
 	public NodeType type;
 	public Material normalMat, goldMat, undiggableMat,selectedNormalMat, selectedGoldMat;
+	public int gridX, gridY;
 	public int goldWorth;
 	private Material selectedMat, unselectedMat;
 	private bool isSelected;
@@ -43,18 +44,16 @@ public class DigNode : MonoBehaviour {
 	}
 
 	IEnumerator selfDestruct () {
-		yield return new WaitForSeconds (0.5f);
+		yield return null;
 		DigNodeManager.digNodeManager.digJobs.Remove (this);
 		Destroy (gameObject);
-		yield return null;
 	}
 
-	public void dig (out int gold) {
-		Debug.Log ("BEING DUG");
-		gold = goldWorth;
+	public void dig () {
 		if (type == NodeType.undiggable)
 			return;
-		StartCoroutine (selfDestruct ());
+		DigNodeManager.digNodeManager.digJobs.Remove (this);
+		Destroy (gameObject);
 	}
 
 	public void forceDig () {

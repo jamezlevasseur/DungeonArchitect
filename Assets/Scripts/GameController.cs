@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using Pathfinding;
 
 public delegate void voidCallback();
 
@@ -10,8 +9,7 @@ public class GameController : MonoBehaviour {
 	public static GameController gamecontroller;
 
 	DigNodeManager digNodeManager;
-
-	const int TOP_MENU_X = 10;
+	public const int TOP_MENU_X = 10;
 
 	public enum SelectableTypes {Structure, Minion, Room, None};
 	public enum DungeonLordType {Warlord, GrandNecromancer};
@@ -19,20 +17,17 @@ public class GameController : MonoBehaviour {
 	private bool onMainMenu, onInGameMenu, chooseDungeonLord, onLoadingScreen, playingGame;
 	private int loadingPercent;
 	private DungeonLordType dungeonLordType;
-	private RT_DGCore dgCore;
 	private GameObject dgRoot;
 	private ButtonGridManager bgm, foreignbgm;
 	private SelectableTypes lastSelectedType;
 	private voidCallback contextualMenuCallback;
-	private Vector3 START_POINT = new Vector3 (0, 0, 0);
 	private AstarGrid astargrid;
 
 	public voidCallback ContextualMenuCallback {set{contextualMenuCallback=value;}}
 	public SelectableTypes LastSelectedType{get{return lastSelectedType;}set{lastSelectedType=value;}}
 	public ButtonGridManager Foreignbgm {get{return foreignbgm;}set{foreignbgm=value;}}
-	public GameObject menuCamera, GroundTile, player, spawner, placer, Throne, Warlord, GrandNecromancer, GnollPeon;
+	public GameObject menuCamera, GroundTile, player, spawner, placer, Throne, WarlordPrefab, GrandNecromancerPrefab, GnollPeonPrefab;
 	public GUISkin menuSkin, topMenuSkin, bottomRightMenuSkin, bottomMiddleMenuSkin;
-	public int dungeonGold;
 
 	public void Awake () {
 		Screen.SetResolution(1280, 800, true);
@@ -62,8 +57,14 @@ public class GameController : MonoBehaviour {
 	}
 
 	void placeGnollPeon() {
-		ObjectSetter.toSet = GnollPeon;
+		ObjectSetter.toSet = GnollPeonPrefab;
 		Instantiate (placer);
+		if (DungeonResources.FoodLimit<DungeonResources.Food+GnollPeon.foodCost) {
+			ObjectSetter.toSet = GnollPeonPrefab;
+			Instantiate (placer);
+		} else {
+			//alert use to issue
+		}
 	}
 	
 	IEnumerator delayedScan() {
@@ -99,21 +100,16 @@ public class GameController : MonoBehaviour {
 
 	IEnumerator initGame () {
 		KoolKatDebugger.log ("GO GAME GO");
-		//dgCore = gameObject.GetComponent<RT_DGCore> ();
-		//dgCore.Init (65, 6, 3, 14, false, 2, 5, 0.3f, 1);
-		//dgCore.Generate ();
-		//EmitGeometry ();
-		//dgRoot = GameObject.Find ("dungeonRoot");
 		loadingPercent = 15;
-		digNodeManager.makeNodeMap (START_POINT);
+		digNodeManager.makeNodeMap (transform.position);
 		loadingPercent = 35;
-		Vector3 throneloc = digNodeManager.cutOutSpace (transform.position, 15);
-		Instantiate (Throne, throneloc, Quaternion.identity);
+		digNodeManager.cutOutSpace (transform.position, 15);
+		Instantiate (Throne, transform.position, Quaternion.identity);
 		Instantiate (player);
 		loadingPercent = 50;
-		Camera.main.transform.position = new Vector3 (throneloc.x, Camera.main.transform.position.y, throneloc.z-20);
+		Camera.main.transform.position = new Vector3 (transform.position.x, Camera.main.transform.position.y, transform.position.z-20);
 		if (dungeonLordType == DungeonLordType.Warlord) {
-			Instantiate(Warlord,new Vector3(throneloc.x,2,throneloc.z-5),Quaternion.identity);
+			Instantiate(WarlordPrefab,new Vector3(transform.position.x,2,transform.position.z-5),Quaternion.identity);
 		}
 		loadingPercent = 60;
 		StartCoroutine (delayedScan ());
@@ -156,9 +152,7 @@ public class GameController : MonoBehaviour {
 				StartCoroutine(initGame());
 			}
 			if (GUI.Button(new Rect(sWidth/7*4,200,400,400),"Grand Necromancer")) {
-				//dungeonLordType = DungeonLordType.GrandNecromancer;
-				//initGame();
-				//chooseDungeonLord = false;
+
 			}
 		} else if (playingGame) {
 			//TOP MENU
@@ -233,28 +227,33 @@ public class GameController : MonoBehaviour {
 		GUI.BeginGroup (new Rect(sWidth - sWidth / 4, 0, sWidth / 4, 20));
 
 		GUI.Box (new Rect(0,0,sWidth / 4, 20),"");
-		GUI.Label (new Rect (0, 0, 50, 20), "Gold: " + dungeonGold);
-
+		GUI.Label (new Rect (10, 0, 50, 20), "Gold: " + DungeonResources.Gold);
+		GUI.Label (new Rect (100, 0, 150, 20), "Food: " + DungeonResources.Food + " / "+DungeonResources.FoodLimit);
 		GUI.EndGroup ();
 	}
-	/*
-	void EmitGeometry()
-	{
-		if(dgCore != null && dgCore.isCorrect())
-		{
-			string oneStepSizeStr = "5";
-			float oneStepSize = (float)System.Convert.ToDouble(oneStepSizeStr);
-			bool isSetIds = false;
-			dgCore.EmitGeometry(lineLGO, lineRGO, lineTGO, lineBGO, ICornerTLGO, ICornerTRGO,
-			                    ICornerBLGO, ICornerBRGO, OCornerTLGO, OCornerTRGO, OCornerBLGO,
-			                    OCornerBRGO, FloorPlate, oneStepSize, isSetIds);
-		}
-		else
-		{
-			Debug.Log("Nothing to build. Generate the scheme at first.");
-		}	
-	}*/
 
+}
+
+public struct DungeonResources {
+	public const int MAX_FOOD = 900;
+	public const int BASE_FOOD_LIMIT = 30;
+	static int gold;
+	static int food;
+	static int foodLimit = BASE_FOOD_LIMIT;
+
+	public static int Gold {get{return gold;} set{gold = value;}}
+	public static int Food {get{return food;}
+		set{
+			if (value<=foodLimit) {
+				food = value;
+			}
+		}
+	}
+	public static int FoodLimit {get{return foodLimit;}
+		set{
+			if (value+BASE_FOOD_LIMIT<=MAX_FOOD)
+				foodLimit = value+BASE_FOOD_LIMIT;
+		}}
 }
 
 public class ButtonGridManager {

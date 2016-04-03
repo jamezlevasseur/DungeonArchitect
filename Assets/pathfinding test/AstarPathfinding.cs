@@ -1,48 +1,104 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System;
+using System.Diagnostics;
+using System.Threading;
+
+struct StartEndPair {
+	public Vector3 start;
+	public Vector3 end;
+}
 
 public class AstarPathfinding : MonoBehaviour {
 
 	PathRequestManager requestManager;
 	AstarGrid grid;
+	Dictionary<string,Thread> threads;
+	Dictionary<string,StartEndPair> finishedThreads;
+	int threadCount;
+	Stopwatch sw;
 
 	void Awake () {
 		requestManager = GetComponent<PathRequestManager>();
 		grid = GetComponent<AstarGrid> ();
+		threads = new Dictionary<string, Thread>();
+		finishedThreads = new Dictionary<string,StartEndPair>();
 	}
 
 	public void StartFindPath (Vector3 startPosition, Vector3 targetPosition) {
-
 		
 		AstarNode targetNode = grid.nodeFromWorldPosition (targetPosition);
 		if (!targetNode.walkable) {
-			scanRadius = 4;
-			//alreadySearched = new List<AstarNode>();
-			nearbyNodes = new Heap<AstarNode>(scanRadius*8);
+			//AstarNode nearbyNode = getClosestWalkableNeighbor(targetNode,targetNode,0,4);
+			//getClosestWalkableNeighbor(targetNode, 0);
+			if (threadCount>9999)
+				threadCount = 0;
+			threadCount++;
+			Thread newthread = new Thread(new ThreadStart(()=>startClosestNeighborSearch(startPosition,targetNode,threadCount+"")));
+			threads.Add(threadCount+"",newthread);
+			newthread.Start();
+			/*
+			scanRadius = 8;
+			nearbyNodes = new Heap<AstarNode>(scanRadius*16);
 			goalNode = targetNode;
 			searchCode++;
 			if (searchCode>10)
 				searchCode = 0;
-			//AstarNode nearbyNode = getClosestWalkableNeighbor(targetNode,targetNode,0,4);
-			getClosestWalkableNeighbor_(targetNode, 0);
+			getClosestWalkableNeighbor(targetNode,0);
 			if (nearbyNodes.Count==0)
 				print ("EMPTY");
 			AstarNode nearbyNode = nearbyNodes.RemoveFirst();
 			targetNode = nearbyNode==null ? targetNode : nearbyNode;
+			StartCoroutine(FindPath(startPosition, targetNode.worldPosition));*/
+		} else {
+			Utils.makeMarker(targetNode.worldPosition.x,targetNode.worldPosition.z);
+			//StartCoroutine(FindPath(startPosition, targetNode.worldPosition));
+			FindPath(startPosition, targetNode.worldPosition);
 		}
-		Utils.makeMarker(targetNode.worldPosition.x,targetNode.worldPosition.z);
-		StartCoroutine(FindPath(startPosition, targetNode.worldPosition));
 	}
 
-	AstarNode closestNode = null;
-	List<AstarNode> alreadySearched;
+	void Update () {
+		foreach (KeyValuePair<string, Thread> entry in threads) {
+			if (finishedThreads.ContainsKey(entry.Key)) {
+				StartEndPair sep = finishedThreads[entry.Key];
+				finishedThreads.Remove(entry.Key);
+				entry.Value.Join();
+				StartCoroutine(FindPath(sep.start, sep.end));
+				//print ("TOTAL FIND TOOK: "+sw.ElapsedMilliseconds+"ms");
+				//sw.Stop();
+			}
+		}
+	}
+
+	void startClosestNeighborSearch (Vector3 startPosition,AstarNode targetNode, string threadName) {
+		scanRadius = 4;
+		nearbyNodes = new Heap<AstarNode>(scanRadius*16);
+		goalNode = targetNode;
+		searchCode++;
+		if (searchCode>10)
+			searchCode = 0;
+		/*sw = new Stopwatch();
+		sw.Start();*/
+		getClosestWalkableNeighbor(targetNode,0);
+		//print ("GET CLOSEST TOOK: "+sw.ElapsedMilliseconds+"ms");
+		if (nearbyNodes.Count==0)
+			print ("EMPTY");
+		AstarNode nearbyNode = nearbyNodes.RemoveFirst();
+		targetNode = nearbyNode==null ? targetNode : nearbyNode;
+		StartEndPair sep = new StartEndPair();
+		sep.start = startPosition;
+		sep.end = targetNode.worldPosition;
+		finishedThreads.Add(threadName, sep);
+		threads[threadName].Abort();
+	}
+
 	AstarNode goalNode;
 	int scanRadius,searchCode;
 	Heap<AstarNode> nearbyNodes;
-	void getClosestWalkableNeighbor_ (AstarNode node, int scanDepth) {
+	AstarNode closestFirstNode;
+	int firstScanDepth;
+	void getClosestWalkableNeighbor (AstarNode node, int scanDepth) {
 		if (scanDepth<scanRadius) {
 			foreach (AstarNode neighbor in grid.getNeighbors(node)) {
 				if (node.searchCode!=searchCode && neighbor.walkable) {
@@ -50,19 +106,17 @@ public class AstarPathfinding : MonoBehaviour {
 					neighbor.gCost = goalNode.gCost + getDistance(goalNode, neighbor);
 					neighbor.hCost = getDistance(neighbor,goalNode);
 					nearbyNodes.Add(neighbor);
-					getClosestWalkableNeighbor_ (neighbor,scanDepth+1);
+					getClosestWalkableNeighbor (neighbor,scanDepth+1);
 				} else {
 					node.searchCode = searchCode;
-					getClosestWalkableNeighbor_ (neighbor,scanDepth+1);
+					getClosestWalkableNeighbor (neighbor,scanDepth+1);
 				}
 			}
 		}
 	}
 
-	IEnumerator FindPath (Vector3 startPos, Vector3 targetPos) {
-		Stopwatch sw = new Stopwatch();
-		sw.Start();
 
+	IEnumerator FindPath (Vector3 startPos, Vector3 targetPos) {
 		Vector3[] waypoints = new Vector3[0];
 		bool pathSuccess = false;
 
@@ -79,8 +133,6 @@ public class AstarPathfinding : MonoBehaviour {
 				closedSet.Add(currentNode);
 
 				if (currentNode == targetNode) {
-					sw.Stop();
-					print("Path Found: " + sw.ElapsedMilliseconds + "ms");
 					pathSuccess = true;
 					break;
 				}

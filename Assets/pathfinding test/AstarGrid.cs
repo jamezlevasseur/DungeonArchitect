@@ -6,14 +6,15 @@ public class AstarGrid : MonoBehaviour {
 
 	public bool displayGridGizmos;
 	public LayerMask unwalkableMask;
-	public Vector2 gridWorldSize;
 	public float nodeRadius;
 	public Transform player;
+	Vector2 gridWorldSize;
 	AstarNode[,] grid;
 	float nodeDiameter;
 	int gridSizeX,gridSizeY;
 
 	void Awake () {
+		gridWorldSize = new Vector2(DigNodeManager.MAP_RANGE_X,DigNodeManager.MAP_RANGE_Z);
 		nodeDiameter = nodeRadius * 2;
 		gridSizeX = Mathf.RoundToInt (gridWorldSize.x/nodeDiameter);
 		gridSizeY = Mathf.RoundToInt (gridWorldSize.y/nodeDiameter);
@@ -33,7 +34,7 @@ public class AstarGrid : MonoBehaviour {
 		for (int x = 0; x < gridSizeX; x ++) {
 			for (int y = 0; y < gridSizeY; y ++) {
 				Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
-				bool walkable = !(Physics.CheckSphere(worldPoint,nodeRadius,unwalkableMask));
+				bool walkable = !(Physics.CheckSphere(worldPoint,nodeRadius-.1f,unwalkableMask));
 				grid[x,y] = new AstarNode(walkable,worldPoint,x,y);
 			}
 		}

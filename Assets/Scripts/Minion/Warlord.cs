@@ -17,6 +17,7 @@ public class Warlord : DungeonLord {
 	private string minionName;
 
 	//public stats
+	public override int FoodCost { get {return 0;} }
 	public override int STR { get {return str;} }
 	public override int AGI { get {return agi;} }
 	public override int WIS { get {return wis;} }
@@ -65,6 +66,14 @@ public class Warlord : DungeonLord {
 	}
 
 	public override void sitOnThrone() {
+
+	}
+
+	public override void onSpawn () {
+
+	}
+	
+	public override void onDeath () {
 
 	}
 }

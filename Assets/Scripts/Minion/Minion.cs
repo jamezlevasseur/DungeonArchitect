@@ -25,6 +25,7 @@ public abstract class Minion : Unit {
 	str, agi, wis, arm, and spd should all exist in a 1-10 range
 	hp should be anywhere from 100 (very low) to 500 (low) to 1000 (intermediate) to 10,000 (boss health)
 	 */
+	public abstract int FoodCost { get; }
 	public abstract int STR { get; }
 	public abstract int AGI { get; }
 	public abstract int WIS { get; }
@@ -69,7 +70,7 @@ public abstract class Minion : Unit {
 	}
 
 	protected void wander () {
-		return;
+		/*
 		int dir = Random.Range(1,5);
 		int low = 4;
 		int high = 8;
@@ -93,7 +94,7 @@ public abstract class Minion : Unit {
 			break;
 		default:
 			break;
-		}
+		}*/
 	}
 
 	protected void setupToWander() {
@@ -188,5 +189,9 @@ public abstract class Minion : Unit {
 
 	protected abstract void initStats ();
 	protected abstract void setUnitText ();
+	//add food to food cost
+	public abstract void onSpawn ();
+	//subtract food from food cost
+	public abstract void onDeath ();
 
 }

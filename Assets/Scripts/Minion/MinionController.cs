@@ -46,7 +46,7 @@ public class MinionController : MonoBehaviour {
 	public void OnGUI () {
 		if (onlyOnDoubleClick && cam != null && Event.current.type == EventType.MouseDown && Event.current.clickCount == 2) {
 			UpdateTargetPosition ();
-		} else if (onlyOnDoubleClick && cam != null && Event.current.type == EventType.MouseDown && Event.current.button == 1) {
+		} else if (onlyOnDoubleClick && cam != null && Event.current.type == EventType.MouseDown && Event.current.button == 1 && !ObjectSetter.isSetting) {
 			deselectUnits();
 		}
 		if( isSelecting )

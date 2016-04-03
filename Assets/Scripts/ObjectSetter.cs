@@ -6,24 +6,31 @@ public class ObjectSetter : MonoBehaviour {
 	public Transform cursorObject;
 	public float distance = 1.5f;
 	public static GameObject toSet;
+	public static bool isSetting;
 	private bool canPlace;
 	
 	void Start() 
 	{
 		//Screen.showCursor = false;
 		Cursor.visible = false;
+		isSetting = true;
 	}
 	
 	void Update() 
 	{
-
+		if (Input.GetMouseButton(1)) {
+			Cursor.visible = true;
+			isSetting = false;
+			Destroy(gameObject);
+		}
 		ObjectFollowCursor();
 		if (Input.GetMouseButtonDown (0) && canPlace) {
 			Vector3 pos = transform.position;
 			pos.y = 1;
 			Instantiate(toSet, pos, Quaternion.identity);
-			Destroy(gameObject);
 			Cursor.visible = true;
+			isSetting = false;
+			Destroy(gameObject);
 		}
 
 	}
