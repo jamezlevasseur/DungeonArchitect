@@ -26,8 +26,15 @@ public class GameController : MonoBehaviour {
 	public voidCallback ContextualMenuCallback {set{contextualMenuCallback=value;}}
 	public SelectableTypes LastSelectedType{get{return lastSelectedType;}set{lastSelectedType=value;}}
 	public ButtonGridManager Foreignbgm {get{return foreignbgm;}set{foreignbgm=value;}}
-	public GameObject menuCamera, GroundTile, player, spawner, placer, Throne, WarlordPrefab, GrandNecromancerPrefab, GnollPeonPrefab;
-	public GUISkin menuSkin, topMenuSkin, bottomRightMenuSkin, bottomMiddleMenuSkin;
+	public GameObject menuCamera, GroundTile, player, spawner, placer;
+
+	//minions
+	public GameObject WarlordPrefab, GrandNecromancerPrefab, GnollPeonPrefab;
+
+	//structures
+	public GameObject FarmPrefab, ThronePrefab;
+
+	public GUISkin menuSkin, topMenuSkin, bottomRightMenuSkin, bottomMiddleMenuSkin, bottomMenuBorderSkin, buttonBGSkin;
 
 	public void Awake () {
 		Screen.SetResolution(1280, 800, true);
@@ -43,15 +50,26 @@ public class GameController : MonoBehaviour {
 	
 	void Start () {
 		contextualMenuCallback = defaultContextualMenu;
+
+		//SETUP BUTTON GRID
+		//structure grid
 		ButtonGrid structureGrid = new ButtonGrid ();
+		structureGrid.insertNewCallback (1,placeFarm,"place farm",GraphicalAssets.graphicalAssets.gnollPeonIcon);
+
+		//minion grid
+		ButtonGrid minionGrid = new ButtonGrid ();
 		structureGrid.insertNewCallback (1,placeGnollPeon,"place gnoll peon",GraphicalAssets.graphicalAssets.gnollPeonIcon);
+
+		//root grid
 		ButtonGrid rootGrid = new ButtonGrid ();
-		rootGrid.insertNewGridLink (5,structureGrid, "minions", GraphicalAssets.graphicalAssets.minionIcon);
+		rootGrid.insertNewGridLink (5,minionGrid, "minions", GraphicalAssets.graphicalAssets.minionIcon);
+		rootGrid.insertNewGridLink (5,structureGrid, "structures");
 		bgm = new ButtonGridManager (rootGrid);
 		bgm.insertButtonGrid(structureGrid);
+
 	}
 
-	void placeSpawner() {
+	void placeFarm() {
 		ObjectSetter.toSet = spawner;
 		Instantiate (placer);
 	}
@@ -104,7 +122,7 @@ public class GameController : MonoBehaviour {
 		digNodeManager.makeNodeMap (transform.position);
 		loadingPercent = 35;
 		digNodeManager.cutOutSpace (transform.position, 15);
-		Instantiate (Throne, transform.position, Quaternion.identity);
+		Instantiate (ThronePrefab, new Vector3(transform.position.x,.5f,transform.position.z), Quaternion.identity);
 		Instantiate (player);
 		loadingPercent = 50;
 		Camera.main.transform.position = new Vector3 (transform.position.x, Camera.main.transform.position.y, transform.position.z-20);
@@ -144,7 +162,7 @@ public class GameController : MonoBehaviour {
 		} else if (chooseDungeonLord) {
 			GUI.skin = menuSkin;
 			GUI.Label(new Rect(sWidth/8,20,1200,70),"Choose Your Dungeon Lord");
-			GUI.skin = bottomRightMenuSkin;
+			GUI.skin = bottomMiddleMenuSkin;
 			if (GUI.Button(new Rect(sWidth/7,200,400,400),"Warlord")) {
 				dungeonLordType = DungeonLordType.Warlord;
 				chooseDungeonLord = false;
@@ -157,53 +175,63 @@ public class GameController : MonoBehaviour {
 		} else if (playingGame) {
 			//TOP MENU
 			GUI.skin = topMenuSkin;
-			GUI.BeginGroup(new Rect(sWidth/2-250,0,500,50));
-			GUI.Box(new Rect(0,0,500,50),"");
-			if (GUI.Button(new Rect(TOP_MENU_X,10,100,30),"Button")) {
+			GUI.BeginGroup(new Rect(0,0,sWidth,30));
+			GUI.Box(new Rect(0,0,sWidth,30),"");
+			if (GUI.Button(new Rect(10,5,90,20),"menu")) {
 				
 			}
-			if (GUI.Button(new Rect(TOP_MENU_X+110,10,100,30),"Button")) {
+			if (GUI.Button(new Rect(110,5,90,20),"quests")) {
 				
 			}
-			if (GUI.Button(new Rect(TOP_MENU_X+(110*2)+50,10,100,30),"Button")) {
-				
-			}
-			if (GUI.Button(new Rect(TOP_MENU_X+(110*3)+50,10,100,30),"Button")) {
-				
-			}
+			GUI.EndGroup();
+
+			//BOTTOM MIDDLE MENU
+			
+			GUI.skin = bottomMiddleMenuSkin;
+			GUI.BeginGroup(new Rect(0,sHeight/5*4,sWidth,sHeight/4));
+			GUI.Box(new Rect(240,0,sWidth,400),"");
+			contextualMenuCallback();
 			GUI.EndGroup();
 
 			//BOTTOM RIGHT MENU
 			GUI.skin = bottomRightMenuSkin;
 			GUI.BeginGroup(new Rect(sWidth/5*4,sHeight/4*3,sWidth/5,sHeight/4+2));
-			GUI.Box(new Rect(0,0,500,400),"");
+			GUI.Box(new Rect(0,10,500,400),"");
 			ButtonGridManager currentbgm = foreignbgm==null ? bgm : foreignbgm;
+			int buttonOffsetX = 15;
+			int buttonOffsetY = 20;
 			for (int x=0; x<4; x++) {
 				for (int y=0; y<3; y++) {
+					GUI.skin = buttonBGSkin;
+					GUI.Box(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetX,
+					                 y*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetY,
+					                 ButtonGrid.BUTTON_SIZE,
+					                 ButtonGrid.BUTTON_SIZE),"");
+					GUI.skin = bottomRightMenuSkin;
 					int index = (x+1)+(y*4);
 					string text;
 					Texture icon;
 					voidCallback callback = currentbgm.getCurrentGrid().getButtonCallback(index, out text, out icon);
 					ButtonGrid grid = currentbgm.getCurrentGrid().getGridLink(index, out text, out icon);
 					if (callback!=null) {
-						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+10,
-						                        y*(ButtonGrid.BUTTON_SIZE+10)+10,
+						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetX,
+						                        y*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetY,
 						                        ButtonGrid.BUTTON_SIZE,
 						                        ButtonGrid.BUTTON_SIZE),icon))
 						{
 							callback();
 						}
 					} else if (grid!=null) {
-						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+10,
-							y*(ButtonGrid.BUTTON_SIZE+10)+10,
-							ButtonGrid.BUTTON_SIZE,
-							ButtonGrid.BUTTON_SIZE),icon))
+						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetX,
+						                        y*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetY,
+												ButtonGrid.BUTTON_SIZE,
+												ButtonGrid.BUTTON_SIZE),icon))
 						{
 							currentbgm.setCurrentGrid(grid);
 						}
 					} else if (index==12 && currentbgm.getCurrentGrid().ParentGrid>-1) {
 						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+10,
-							y*(ButtonGrid.BUTTON_SIZE+10)+10,
+							y*(ButtonGrid.BUTTON_SIZE+10)+20,
 							ButtonGrid.BUTTON_SIZE,
 							ButtonGrid.BUTTON_SIZE),"Cancel"))
 						{
@@ -213,23 +241,26 @@ public class GameController : MonoBehaviour {
 				}
 			}
 			GUI.EndGroup();
-			//BOTTOM MIDDLE MENU
 
-			GUI.skin = bottomMiddleMenuSkin;
-			GUI.BeginGroup(new Rect(sWidth/5+50,sHeight/5*4,sWidth/5*3,sHeight/4));
-			GUI.Box(new Rect(0,0,700,400),"");
-			contextualMenuCallback();
+			//bottom border
+			GUI.skin = bottomMenuBorderSkin;
+			float d = sHeight/5*4-sHeight/4*3;
+			GUI.BeginGroup(new Rect(0,sHeight/4*3,sWidth,sHeight/4));
+			GUI.Box(new Rect(-10,d,sWidth/5*4,10),"");
+			GUI.Box(new Rect(230,d,10,250),"");
+			GUI.Box(new Rect(sWidth/5*4-10,0,10,250),"");
+			GUI.Box(new Rect(sWidth/5*4-10,0,sWidth,10),"");
 			GUI.EndGroup();
+
+			//RESOURCES MENU, TOP RIGHT
+			
+			GUI.BeginGroup (new Rect(sWidth - sWidth / 4, 0, sWidth / 4, 20));
+
+			GUI.Label (new Rect (10, 0, 50, 20), "Gold: " + DungeonResources.Gold);
+			GUI.Label (new Rect (100, 0, 150, 20), "Food: " + DungeonResources.Food + " / "+DungeonResources.FoodLimit);
+			GUI.EndGroup ();
 		} 
 
-		//RESOURCES MENU, TOP RIGHT
-
-		GUI.BeginGroup (new Rect(sWidth - sWidth / 4, 0, sWidth / 4, 20));
-
-		GUI.Box (new Rect(0,0,sWidth / 4, 20),"");
-		GUI.Label (new Rect (10, 0, 50, 20), "Gold: " + DungeonResources.Gold);
-		GUI.Label (new Rect (100, 0, 150, 20), "Food: " + DungeonResources.Food + " / "+DungeonResources.FoodLimit);
-		GUI.EndGroup ();
 	}
 
 }
