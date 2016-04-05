@@ -115,6 +115,7 @@ public class MinionController : MonoBehaviour {
 			target.position = hit.point;
 			for (int i=0; i<selectedUnits.Count; i++) {
 				selectedUnits[i].goTo(target.position);
+				print ("SENDING GO TO");
 			}
 		}
 	}

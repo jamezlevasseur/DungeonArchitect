@@ -65,8 +65,19 @@ public abstract class Minion : Unit {
 	}
 
 	public void goTo (Vector3 targetPosition) {
-		canWander = false;
-		//seeker.StartPath (transform.position,targetPosition, OnPathComplete);
+		print ("GO TO");
+		PathRequestManager.RequestPath (transform.position,targetPosition, pathFound);
+	}
+
+	public void pathFound(Vector3[] newPath, bool pathSuccess) {
+		if (pathSuccess) {
+			print ("FOUND PATH");
+			base.path = newPath;
+			StopCoroutine("FollowPath");
+			StartCoroutine("FollowPath");
+		} else {
+			Debug.Log("FAILED TO FIND PATH");
+		}
 	}
 
 	protected void wander () {

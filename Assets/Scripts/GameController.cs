@@ -26,7 +26,7 @@ public class GameController : MonoBehaviour {
 	public voidCallback ContextualMenuCallback {set{contextualMenuCallback=value;}}
 	public SelectableTypes LastSelectedType{get{return lastSelectedType;}set{lastSelectedType=value;}}
 	public ButtonGridManager Foreignbgm {get{return foreignbgm;}set{foreignbgm=value;}}
-	public GameObject menuCamera, GroundTile, player, spawner, placer;
+	public GameObject menuCamera, GroundTile, player, placer;
 
 	//minions
 	public GameObject WarlordPrefab, GrandNecromancerPrefab, GnollPeonPrefab;
@@ -54,23 +54,23 @@ public class GameController : MonoBehaviour {
 		//SETUP BUTTON GRID
 		//structure grid
 		ButtonGrid structureGrid = new ButtonGrid ();
-		structureGrid.insertNewCallback (1,placeFarm,"place farm",GraphicalAssets.graphicalAssets.gnollPeonIcon);
+		structureGrid.insertNewCallback (1,placeFarm,"place farm");
 
 		//minion grid
 		ButtonGrid minionGrid = new ButtonGrid ();
-		structureGrid.insertNewCallback (1,placeGnollPeon,"place gnoll peon",GraphicalAssets.graphicalAssets.gnollPeonIcon);
+		minionGrid.insertNewCallback (1,placeGnollPeon,"place gnoll peon",GraphicalAssets.graphicalAssets.gnollPeonIcon);
 
 		//root grid
 		ButtonGrid rootGrid = new ButtonGrid ();
 		rootGrid.insertNewGridLink (5,minionGrid, "minions", GraphicalAssets.graphicalAssets.minionIcon);
-		rootGrid.insertNewGridLink (5,structureGrid, "structures");
+		rootGrid.insertNewGridLink (6,structureGrid, "structures");
 		bgm = new ButtonGridManager (rootGrid);
 		bgm.insertButtonGrid(structureGrid);
 
 	}
 
 	void placeFarm() {
-		ObjectSetter.toSet = spawner;
+		ObjectSetter.toSet = FarmPrefab;
 		Instantiate (placer);
 	}
 
@@ -127,7 +127,7 @@ public class GameController : MonoBehaviour {
 		loadingPercent = 50;
 		Camera.main.transform.position = new Vector3 (transform.position.x, Camera.main.transform.position.y, transform.position.z-20);
 		if (dungeonLordType == DungeonLordType.Warlord) {
-			Instantiate(WarlordPrefab,new Vector3(transform.position.x,2,transform.position.z-5),Quaternion.identity);
+			Instantiate(WarlordPrefab,new Vector3(transform.position.x,1,transform.position.z-5),Quaternion.identity);
 		}
 		loadingPercent = 60;
 		StartCoroutine (delayedScan ());

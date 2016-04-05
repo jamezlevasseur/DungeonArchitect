@@ -8,7 +8,7 @@ public class Unit : Selectable {
 	protected Vector3[] path;
 	protected int targetIndex;
 	protected voidCallback arrivedAtDestinationCallback;
-	
+
 	public void OnPathFound (Vector3[] newPath, bool pathSuccess) {
 		if (pathSuccess) {
 			path = newPath;

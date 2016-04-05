@@ -7,13 +7,47 @@ public class ObjectSetter : MonoBehaviour {
 	public float distance = 1.5f;
 	public static GameObject toSet;
 	public static bool isSetting;
-	private bool canPlace;
+	private bool canPlace, colliding;
+
+	public Material goodMat,badMat;
 	
 	void Start() 
 	{
 		//Screen.showCursor = false;
 		Cursor.visible = false;
 		isSetting = true;
+
+		gameObject.GetComponent<MeshFilter>().mesh = toSet.GetComponent<MeshFilter>().sharedMesh;
+		gameObject.transform.localScale = toSet.transform.localScale;
+		//gameObject.GetComponent<MeshCollider>().sharedMesh = toSet.GetComponent<MeshFilter>().sharedMesh;
+		if (toSet.GetComponent<MeshCollider>()!=null) {
+			MeshCollider mc = gameObject.AddComponent<MeshCollider>();
+			mc = toSet.GetComponent<MeshCollider>();
+			GetComponent<MeshCollider>().convex = true;
+			GetComponent<MeshCollider>().isTrigger = true;
+		} else if (toSet.GetComponent<BoxCollider>()!=null) {
+			BoxCollider bc = gameObject.AddComponent<BoxCollider>();
+			bc = toSet.GetComponent<BoxCollider>();
+			GetComponent<BoxCollider>().isTrigger = true;
+		} else if (toSet.GetComponent<CapsuleCollider>()!=null) {
+			CapsuleCollider cc = gameObject.AddComponent<CapsuleCollider>();
+			cc = toSet.GetComponent<CapsuleCollider>();
+			GetComponent<CapsuleCollider>().isTrigger = true;
+		} else if (toSet.GetComponent<SphereCollider>()!=null) {
+			SphereCollider sc = gameObject.AddComponent<SphereCollider>();
+			sc = toSet.GetComponent<SphereCollider>();
+			GetComponent<SphereCollider>().isTrigger = true;
+		}
+	}
+
+	void OnTriggerStay (Collider other) {
+		colliding = true;
+		GetComponent<MeshRenderer>().material = badMat;
+	}
+
+	void OnTriggerExit () {
+		colliding = false;
+		GetComponent<MeshRenderer>().material = goodMat;
 	}
 	
 	void Update() 
@@ -24,7 +58,7 @@ public class ObjectSetter : MonoBehaviour {
 			Destroy(gameObject);
 		}
 		ObjectFollowCursor();
-		if (Input.GetMouseButtonDown (0) && canPlace) {
+		if (Input.GetMouseButtonDown (0) && canPlace && !colliding) {
 			Vector3 pos = transform.position;
 			pos.y = 1;
 			Instantiate(toSet, pos, Quaternion.identity);
@@ -46,15 +80,14 @@ public class ObjectSetter : MonoBehaviour {
 				gameObject.GetComponent<MeshRenderer>().enabled = true;
 			canPlace = true;
 		} else {
-			if (gameObject.GetComponent<MeshRenderer>().enabled)
+			/*if (gameObject.GetComponent<MeshRenderer>().enabled)
 				gameObject.GetComponent<MeshRenderer>().enabled = false;
-			canPlace = false;
+			canPlace = false;*/
 		}
 
 		if (Physics.Raycast (mouseRay, out hit, 100f, 1 << 8)) {
 
 		}
-
-		transform.position = hit.point;
+		transform.position = new Vector3(hit.point.x,1,hit.point.z);
 	}
 }

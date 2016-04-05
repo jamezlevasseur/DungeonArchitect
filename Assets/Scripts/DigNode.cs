@@ -31,7 +31,7 @@ public class DigNode : MonoBehaviour {
 	}
 
 	void OnMouseDown () {
-		if (type == NodeType.undiggable)
+		if (type == NodeType.undiggable && ObjectSetter.isSetting)
 			return;
 		isSelected = !isSelected;
 		if (isSelected) {

@@ -52,9 +52,7 @@ public class AstarPathfinding : MonoBehaviour {
 			targetNode = nearbyNode==null ? targetNode : nearbyNode;
 			StartCoroutine(FindPath(startPosition, targetNode.worldPosition));*/
 		} else {
-			Utils.makeMarker(targetNode.worldPosition.x,targetNode.worldPosition.z);
-			//StartCoroutine(FindPath(startPosition, targetNode.worldPosition));
-			FindPath(startPosition, targetNode.worldPosition);
+			StartCoroutine(FindPath(startPosition, targetNode.worldPosition));
 		}
 	}
 
