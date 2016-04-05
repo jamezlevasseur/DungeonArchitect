@@ -6,10 +6,7 @@ public class GraphicalAssets : MonoBehaviour {
 	public static GraphicalAssets graphicalAssets;
 	public Texture defaultIcon;
 	public Texture minionIcon;
-	public Texture portalIcon;
-	public Texture cubeMinionIcon;
-	public Texture capsuleMinionIcon;
-	public Texture gnollPeonIcon;
+	public Texture structureIcon;
 
 	void Awake () {
 		if (GraphicalAssets.graphicalAssets == null)

@@ -11,8 +11,8 @@ public class Portal : Structure {
 	// Use this for initialization
 	void Start () {
 		portalbgm = base.getStructurebgm();
-		portalbgm.getCurrentGrid().insertNewCallback(1,summonCapsuleMinion,"Capsule", GraphicalAssets.graphicalAssets.capsuleMinionIcon);
-		portalbgm.getCurrentGrid().insertNewCallback(2,summonCubeMinion,"Cube", GraphicalAssets.graphicalAssets.cubeMinionIcon);
+		portalbgm.getCurrentGrid().insertNewCallback(1,summonCapsuleMinion,"Capsule");
+		portalbgm.getCurrentGrid().insertNewCallback(2,summonCubeMinion,"Cube");
 	}
 	
 	void summonCapsuleMinion () {

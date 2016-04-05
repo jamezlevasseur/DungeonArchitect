@@ -58,14 +58,15 @@ public class GameController : MonoBehaviour {
 
 		//minion grid
 		ButtonGrid minionGrid = new ButtonGrid ();
-		minionGrid.insertNewCallback (1,placeGnollPeon,"place gnoll peon",GraphicalAssets.graphicalAssets.gnollPeonIcon);
+		minionGrid.insertNewCallback (1,placeGnollPeon,"place gnoll peon");
 
 		//root grid
 		ButtonGrid rootGrid = new ButtonGrid ();
-		rootGrid.insertNewGridLink (5,minionGrid, "minions", GraphicalAssets.graphicalAssets.minionIcon);
-		rootGrid.insertNewGridLink (6,structureGrid, "structures");
+		rootGrid.insertNewGridLink (5, minionGrid, "minions", GraphicalAssets.graphicalAssets.minionIcon);
+		rootGrid.insertNewGridLink (6, structureGrid, "structures", GraphicalAssets.graphicalAssets.structureIcon);
 		bgm = new ButtonGridManager (rootGrid);
 		bgm.insertButtonGrid(structureGrid);
+		bgm.insertButtonGrid(minionGrid);
 
 	}
 
