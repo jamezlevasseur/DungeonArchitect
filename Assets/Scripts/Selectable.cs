@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public abstract class Selectable : MonoBehaviour {
+public interface Selectable {
 
-	public abstract void wasSelected();
-	public abstract void wasUnselected();
+	void wasSelected();
+	void wasUnselected();
+	void assertbgm();
 }

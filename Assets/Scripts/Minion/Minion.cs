@@ -1,45 +1,44 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
-public abstract class Minion : Unit {
+public abstract class Minion : Unit, Selectable, SerializableJSON, GameID {
 	
 	public const int STARTING_LEVEL = 1;
 	public enum MinionStatDescriptor {Weak, Intermediate, Strong};
 	public Material selectedMat;
-	//The AI's speed per second
-	//public float speed = 100;
-	//The max distance from the AI to a waypoint for it to continue to the next waypoint
-	public float nextWaypointDistance = 3;
 
 	//The waypoint we are currently moving towards
 	protected int currentWaypoint = 0;
-	protected int shouldBeMovingCount;
 	protected Vector3 lastLoc;
 	protected CharacterController controller;
 	protected Material unselectedMat;
 	protected float lastWander;
-	protected bool canWander, shouldBeMoving;
+	protected bool canWander;
 	protected voidCallback reachedDestinationCallback,pathingFailedCallback;
 
 	/*
 	str, agi, wis, arm, and spd should all exist in a 1-10 range
 	hp should be anywhere from 100 (very low) to 500 (low) to 1000 (intermediate) to 10,000 (boss health)
 	 */
-	public abstract int FoodCost { get; }
-	public abstract int STR { get; }
-	public abstract int AGI { get; }
-	public abstract int WIS { get; }
-	public abstract int SPD { get; }
-	public abstract int TotalHP { get; }
-	public abstract int HP { get; }
-	public abstract int ARM { get; }
-	public abstract int Level { get; }
-	public abstract int EXP { get; }
-	public abstract string ClassName { get; }
-	public abstract string MinionName { get; }
-	public abstract Texture MinionPicture { get; }
+	public abstract int FoodCost { get;set; }
+	public abstract int STR { get;set; }
+	public abstract int AGI { get;set; }
+	public abstract int WIS { get;set; }
+	public abstract int SPD { get;set; }
+	public abstract int TotalHP { get;set; }
+	public abstract int HP { get;set; }
+	public abstract int ARM { get;set; }
+	public abstract int Level { get;set; }
+	public abstract int EXP { get;set; }
+	public abstract string ClassName { get;set; }
+	public abstract string MinionName { get;set; }
+	public abstract Texture MinionPicture { get;set; }
+	public abstract bool IsAssignedToStation { get;set; }
+	public long ID {get{return id;}}
 
-	protected virtual void Start () {
+	protected override void Start () {
+		base.Start();
 		unselectedMat = gameObject.GetComponent<MeshRenderer>().material;
 		controller = GetComponent<CharacterController>();
 		MinionController.minionController.addUnselectedUnit (this);
@@ -64,9 +63,9 @@ public abstract class Minion : Unit {
 		//minionPathing ();
 	}
 
-	public void goTo (Vector3 targetPosition) {
-		print ("GO TO");
-		PathRequestManager.RequestPath (transform.position,targetPosition, pathFound);
+	public virtual void goTo (Vector3 targetPosition) {
+		if (!IsAssignedToStation)
+			PathRequestManager.RequestPath (transform.position,targetPosition, pathFound);
 	}
 
 	public void pathFound(Vector3[] newPath, bool pathSuccess) {
@@ -115,51 +114,73 @@ public abstract class Minion : Unit {
 		//path = null;
 	}
 
-	protected void minionPathing () {/*
-		if (path == null) {
-			//We have no path to move after yet
-			return;
-		}
-		if (currentWaypoint >= path.vectorPath.Count) {
-			Debug.Log ("End Of Path Reached");
-			shouldBeMoving = false;
-			shouldBeMovingCount = 0;
-			lastLoc = Vector3.zero;
-			reachedDestinationCallback();
-			return;
-		}
-		if (shouldBeMoving) {
-			if (lastLoc==Vector3.zero) {
-				lastLoc = transform.position;
-			} else {
-				if (lastLoc == transform.position)
-					shouldBeMovingCount++;
-				if (shouldBeMovingCount>25) {
-					Debug.Log("REALLY SHOULD HAVE MOVED BY NOW");
-				}
-			}
-		}
-		//Direction to the next waypoint
-		Vector3 dir = (path.vectorPath[currentWaypoint]-transform.position).normalized;
-		dir *= speed * Time.deltaTime;
-		controller.SimpleMove (dir);
-		//Check if we are close enough to the next waypoint
-		//If we are, proceed to follow the next waypoint
-		if (Vector3.Distance (transform.position,path.vectorPath[currentWaypoint]) < nextWaypointDistance) {
-			currentWaypoint++;
-			return;
-		}*/
+	protected string statsJSON () {
+		Dictionary<object,object> dict = new Dictionary<object, object>();
+		dict.Add("id",id);
+		dict.Add("str",STR);
+		dict.Add("agi",AGI);
+		dict.Add("wis",WIS);
+		dict.Add("spd",SPD);
+		dict.Add("hp",HP);
+		dict.Add("totalhp",TotalHP);
+		dict.Add("arm",ARM);
+		dict.Add("level",Level);
+		dict.Add("exp",EXP);
+		dict.Add("className",ClassName);
+		dict.Add("minionName",MinionName);
+		dict.Add("foodCost",FoodCost);
+		dict.Add("isAssignedToStation",IsAssignedToStation);
+		dict.Add("position",transform.position.ToString());
+		dict.Add("rotation",transform.localRotation.ToString());
+		return Utils.DictionaryToJSON(dict);
 	}
 
-	public override void wasUnselected () {
+	public override void syncStats (Hashtable stats) {
+		transform.position = Utils.vector3FromString((string)stats["position"]);
+		id = long.Parse((string)stats["id"]);
+		STR = int.Parse((string)stats["str"]);
+		AGI = int.Parse((string)stats["agi"]);
+		WIS = int.Parse((string)stats["wis"]);
+		SPD = int.Parse((string)stats["spd"]);
+		TotalHP = int.Parse((string)stats["totalhp"]);
+		ARM = int.Parse((string)stats["arm"]);
+		EXP = int.Parse((string)stats["exp"]);
+		Level = int.Parse((string)stats["level"]);
+		FoodCost = int.Parse((string)stats["foodCost"]);
+		ClassName = (string)stats["className"];
+		MinionName = (string)stats["minionName"];
+		IsAssignedToStation = bool.Parse((string)stats["isAssignedToStation"]);
+	}
+
+	protected void destroyMinion () {
+		GameController.gamecontroller.Foreignbgm = null;
+		Destroy(gameObject);
+	}
+
+	protected ButtonGridManager getMinionbgm () {
+		ButtonGrid root = new ButtonGrid();
+		root.insertNewCallback(8,destroyMinion,"Kill");
+		ButtonGridManager structurebgm = new ButtonGridManager(root);
+		return structurebgm;
+	}
+
+	public virtual void wasUnselected () {
 		gameObject.GetComponent<MeshRenderer> ().material = unselectedMat;
 		GameController.gamecontroller.surrenderContextualMenu ();
 	}
 
-	public override void wasSelected () {
+	public virtual void assertbgm () {
+		GameController.gamecontroller.Foreignbgm = getMinionbgm();
+		GameController.gamecontroller.LastSelectedType = GameController.SelectableTypes.Minion;
+	}
+
+	public virtual void wasSelected () {
+		MinionController.minionController.deselectUnits ();
+		MinionController.minionController.addSelectedUnit (this);
 		gameObject.GetComponent<MeshRenderer> ().material = selectedMat;
 		GameController.gamecontroller.LastSelectedType = GameController.SelectableTypes.Minion;
 		GameController.gamecontroller.ContextualMenuCallback = minionContextualMenuCallback;
+		assertbgm();
 	}
 
 	void minionContextualMenuCallback () {
@@ -167,8 +188,6 @@ public abstract class Minion : Unit {
 	}
 
 	protected void OnMouseDown () {
-		MinionController.minionController.deselectUnits ();
-		MinionController.minionController.addSelectedUnit (this);
 		wasSelected ();
 	}
 
@@ -197,7 +216,9 @@ public abstract class Minion : Unit {
 			return Random.Range(400,700);
 		}
 	}
-
+	
+	public abstract void releaseFromStation ();
+	public abstract void assignToStation (Vector3 placeToGo, Structure station);
 	protected abstract void initStats ();
 	protected abstract void setUnitText ();
 	//add food to food cost

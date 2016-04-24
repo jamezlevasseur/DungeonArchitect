@@ -1,6 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.IO;
+using Json;
 
 public delegate void voidCallback();
 
@@ -8,11 +12,13 @@ public class GameController : MonoBehaviour {
 
 	public static GameController gamecontroller;
 
+	private long idCount;
 	DigNodeManager digNodeManager;
 	public const int TOP_MENU_X = 10;
 
 	public enum SelectableTypes {Structure, Minion, Room, None};
 	public enum DungeonLordType {Warlord, GrandNecromancer};
+	public enum GameObjectType {DigNode,GnollPeon,Warlord,Farm};
 
 	private bool onMainMenu, onInGameMenu, chooseDungeonLord, onLoadingScreen, playingGame;
 	private int loadingPercent;
@@ -23,6 +29,7 @@ public class GameController : MonoBehaviour {
 	private voidCallback contextualMenuCallback;
 	private AstarGrid astargrid;
 
+	public static Vector3 safeSpawnPoint = new Vector3(0,.5f,5);
 	public voidCallback ContextualMenuCallback {set{contextualMenuCallback=value;}}
 	public SelectableTypes LastSelectedType{get{return lastSelectedType;}set{lastSelectedType=value;}}
 	public ButtonGridManager Foreignbgm {get{return foreignbgm;}set{foreignbgm=value;}}
@@ -37,11 +44,14 @@ public class GameController : MonoBehaviour {
 	public GUISkin menuSkin, topMenuSkin, bottomRightMenuSkin, bottomMiddleMenuSkin, bottomMenuBorderSkin, buttonBGSkin;
 
 	public void Awake () {
-		Screen.SetResolution(1280, 800, true);
-		if (GameController.gamecontroller == null)
+
+		if (GameController.gamecontroller == null) {
 			gamecontroller = this;
-		else
+		} else {
 			Destroy (gameObject);
+		}
+		idCount = 0;
+		Screen.SetResolution(1280, 800, true);
 		onMainMenu = true;
 		lastSelectedType = SelectableTypes.None;
 		digNodeManager = GetComponent<DigNodeManager>();
@@ -113,7 +123,6 @@ public class GameController : MonoBehaviour {
 		GUI.Label (new Rect (500, 80, 200, 20), "AGI: "+minion.AGI);
 		GUI.Label (new Rect (500, 100, 200, 20), "WIS: "+minion.WIS);
 		GUI.Label (new Rect (500, 120, 200, 20), "Armor: "+minion.ARM);
-		//GUI.Label (new Rect (200, 20, 200, 150), "Status: ");
 		GUI.DrawTexture (new Rect (10, 10, 150, 150), minion.MinionPicture);
 	}
 
@@ -135,6 +144,77 @@ public class GameController : MonoBehaviour {
 
 		yield return null;
 	}
+
+	void saveGame () {
+		Dictionary<object,object> dict = new Dictionary<object, object>();
+		//game settings
+		dict.Add("idCount",idCount);
+		//for each obj in game
+		string[] all_s = new string[Saveable.all.Count];
+		print("all save length: "+Saveable.all.Count);
+		for (int i = 0; i < Saveable.all.Count; i++) {
+			all_s[i] = Saveable.all[i].getData();
+		}
+		dict.Add("objects",all_s);
+		File.WriteAllText(Application.persistentDataPath+"/dungeonarchitect.sav", Utils.DictionaryToJSON(dict));
+	}
+
+	IEnumerator loadGame () {
+		Instantiate (player);
+		if (File.Exists(Application.persistentDataPath+"/dungeonarchitect.sav")) {
+			Hashtable loadJSON = (Hashtable) JSON.JsonDecode(File.ReadAllText(Application.persistentDataPath+"/dungeonarchitect.sav"));
+			print (loadJSON);
+			ArrayList objects = (ArrayList) loadJSON["objects"];
+			Hashtable doLast = new Hashtable();
+			foreach (Hashtable obj in objects) {
+				string type = (string)obj["type"];
+				switch (type) {
+				case "DigNode":
+					digNodeManager.addLoadedNode(obj);
+					break;
+				case "Warlord":
+					Hashtable statsWarlord = (Hashtable) obj["stats"];
+					GameObject warlord = (GameObject)Instantiate(WarlordPrefab,Vector3.zero,Quaternion.identity);
+					warlord.GetComponent<Warlord>().syncStats(statsWarlord);
+					break;
+				case "GnollPeon":
+					Hashtable statsGnollPeon = (Hashtable) obj["stats"];
+					GameObject gnollPeon = (GameObject)Instantiate(GnollPeonPrefab,Vector3.zero,Quaternion.identity);
+					gnollPeon.GetComponent<GnollPeon>().syncStats(statsGnollPeon);
+					break;
+				case "Farm":
+					if (bool.Parse((string)obj["hasFarmer"]) && obj.ContainsKey("clients")) {
+						doLast.Add(""+doLast.Count,obj);
+						break;
+					}
+					GameObject farm = (GameObject)Instantiate(FarmPrefab,Vector3.zero,Quaternion.identity);
+					farm.GetComponent<Farm>().syncStats(obj);
+					break;
+				}
+			}
+			//do some structures last to ensure minions assigned to them are instantiated
+			foreach (Hashtable obj in doLast) {
+				string type = (string)obj["type"];
+				switch (type) {
+				case "Farm":
+					GameObject farm = (GameObject)Instantiate(FarmPrefab,Vector3.zero,Quaternion.identity);
+					farm.GetComponent<Farm>().syncStats(obj);
+					break;
+				}
+			}
+			idCount = long.Parse((string)loadJSON["idCount"]);
+		}
+		digNodeManager.makeTiles();
+
+		Camera.main.transform.position = new Vector3 (transform.position.x, Camera.main.transform.position.y, transform.position.z-20);
+		StartCoroutine (delayedScan ());
+		yield return null;
+	}
+
+	public static long getID () {
+		gamecontroller.idCount++;
+		return gamecontroller.idCount;
+	}
 	
 	void OnGUI () {
 		int sHeight = Screen.height;
@@ -147,7 +227,8 @@ public class GameController : MonoBehaviour {
 				onMainMenu = false;
 			}
 			if (GUI.Button(new Rect(sWidth/2-250,270,500,70),"Load Game")) {
-
+				onMainMenu = false;
+				StartCoroutine(loadGame());
 			}
 			if (GUI.Button(new Rect(sWidth/2-250,340,500,70),"Options")) {
 
@@ -156,6 +237,25 @@ public class GameController : MonoBehaviour {
 
 			}
 		} else if (onInGameMenu) {
+			Time.timeScale = 0;
+			GUI.skin = menuSkin;
+			GUI.BeginGroup(new Rect(sWidth/2-sWidth/8,sHeight/4,sWidth/4,sHeight/4*2));
+			GUI.Box(new Rect(0,0,sWidth/4,sHeight/4*2),"");
+			if (GUI.Button(new Rect(sWidth/128,70,sWidth/4,50),"Save Game")) {
+				saveGame();
+				onInGameMenu = false;
+				Time.timeScale = 1;
+			}
+			if (GUI.Button(new Rect(sWidth/128,140,sWidth/4,50),"Quit")) {
+				Application.Quit();
+				onInGameMenu = false;
+				Time.timeScale = 1;
+			}
+			if (GUI.Button(new Rect(sWidth/128,210,sWidth/4,50),"Close")) {
+				onInGameMenu = false;
+				Time.timeScale = 1;
+			}
+			GUI.EndGroup();
 
 		} else if (onLoadingScreen) {
 			GUI.skin = menuSkin;
@@ -179,7 +279,7 @@ public class GameController : MonoBehaviour {
 			GUI.BeginGroup(new Rect(0,0,sWidth,30));
 			GUI.Box(new Rect(0,0,sWidth,30),"");
 			if (GUI.Button(new Rect(10,5,90,20),"menu")) {
-				
+				onInGameMenu = !onInGameMenu;
 			}
 			if (GUI.Button(new Rect(110,5,90,20),"quests")) {
 				
@@ -201,6 +301,7 @@ public class GameController : MonoBehaviour {
 			ButtonGridManager currentbgm = foreignbgm==null ? bgm : foreignbgm;
 			int buttonOffsetX = 15;
 			int buttonOffsetY = 20;
+			bool showToolTip = false;
 			for (int x=0; x<4; x++) {
 				for (int y=0; y<3; y++) {
 					GUI.skin = buttonBGSkin;
@@ -218,28 +319,37 @@ public class GameController : MonoBehaviour {
 						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetX,
 						                        y*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetY,
 						                        ButtonGrid.BUTTON_SIZE,
-						                        ButtonGrid.BUTTON_SIZE),icon))
+						                        ButtonGrid.BUTTON_SIZE),new GUIContent(icon,text)))
 						{
 							callback();
 						}
+						showToolTip = true;
 					} else if (grid!=null) {
 						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetX,
 						                        y*(ButtonGrid.BUTTON_SIZE+10)+buttonOffsetY,
 												ButtonGrid.BUTTON_SIZE,
-												ButtonGrid.BUTTON_SIZE),icon))
+												ButtonGrid.BUTTON_SIZE),new GUIContent(icon,text)))
 						{
 							currentbgm.setCurrentGrid(grid);
 						}
+						showToolTip = true;
 					} else if (index==12 && currentbgm.getCurrentGrid().ParentGrid>-1) {
 						if (GUI.Button(new Rect(x*(ButtonGrid.BUTTON_SIZE+10)+10,
 							y*(ButtonGrid.BUTTON_SIZE+10)+20,
 							ButtonGrid.BUTTON_SIZE,
-							ButtonGrid.BUTTON_SIZE),"Cancel"))
+						    ButtonGrid.BUTTON_SIZE),new GUIContent("Cancel",text)))
 						{
 							currentbgm.pop();
 						}
+						showToolTip = true;
+
 					}
 				}
+			}
+
+			if (showToolTip == true) {
+				Rect toolRect = new Rect(Event.current.mousePosition.x,Event.current.mousePosition.y,120,60);
+				GUI.Label(toolRect,GUI.tooltip);
 			}
 			GUI.EndGroup();
 
@@ -258,7 +368,7 @@ public class GameController : MonoBehaviour {
 			GUI.BeginGroup (new Rect(sWidth - sWidth / 4, 0, sWidth / 4, 20));
 
 			GUI.Label (new Rect (10, 0, 50, 20), "Gold: " + DungeonResources.Gold);
-			GUI.Label (new Rect (100, 0, 150, 20), "Food: " + DungeonResources.Food + " / "+DungeonResources.FoodLimit);
+			GUI.Label (new Rect (100, 0, 150, 20), "Food: " + DungeonResources.Food + " / " + DungeonResources.FoodLimit);
 			GUI.EndGroup ();
 		} 
 
@@ -274,6 +384,7 @@ public struct DungeonResources {
 	static int foodLimit = BASE_FOOD_LIMIT;
 
 	public static int Gold {get{return gold;} set{gold = value;}}
+
 	public static int Food {get{return food;}
 		set{
 			if (value<=foodLimit) {
@@ -281,11 +392,23 @@ public struct DungeonResources {
 			}
 		}
 	}
-	public static int FoodLimit {get{return foodLimit;}
-		set{
-			if (value+BASE_FOOD_LIMIT<=MAX_FOOD)
+
+	public static int FoodLimit {
+		get{return foodLimit;}
+		set {
+			if (value+BASE_FOOD_LIMIT<=MAX_FOOD) {
 				foodLimit = value+BASE_FOOD_LIMIT;
-		}}
+			}
+		}
+	}
+
+	public static void calculateFoodLimit () {
+		int total = 0;
+		foreach (Farm farm in Farm.farms) {
+			total += farm.foodOnFarm;
+		}
+		FoodLimit = total;
+	}
 }
 
 public class ButtonGridManager {

@@ -30,27 +30,12 @@ public class AstarPathfinding : MonoBehaviour {
 		
 		AstarNode targetNode = grid.nodeFromWorldPosition (targetPosition);
 		if (!targetNode.walkable) {
-			//AstarNode nearbyNode = getClosestWalkableNeighbor(targetNode,targetNode,0,4);
-			//getClosestWalkableNeighbor(targetNode, 0);
 			if (threadCount>9999)
 				threadCount = 0;
 			threadCount++;
 			Thread newthread = new Thread(new ThreadStart(()=>startClosestNeighborSearch(startPosition,targetNode,threadCount+"")));
 			threads.Add(threadCount+"",newthread);
 			newthread.Start();
-			/*
-			scanRadius = 8;
-			nearbyNodes = new Heap<AstarNode>(scanRadius*16);
-			goalNode = targetNode;
-			searchCode++;
-			if (searchCode>10)
-				searchCode = 0;
-			getClosestWalkableNeighbor(targetNode,0);
-			if (nearbyNodes.Count==0)
-				print ("EMPTY");
-			AstarNode nearbyNode = nearbyNodes.RemoveFirst();
-			targetNode = nearbyNode==null ? targetNode : nearbyNode;
-			StartCoroutine(FindPath(startPosition, targetNode.worldPosition));*/
 		} else {
 			StartCoroutine(FindPath(startPosition, targetNode.worldPosition));
 		}
@@ -63,8 +48,6 @@ public class AstarPathfinding : MonoBehaviour {
 				finishedThreads.Remove(entry.Key);
 				entry.Value.Join();
 				StartCoroutine(FindPath(sep.start, sep.end));
-				//print ("TOTAL FIND TOOK: "+sw.ElapsedMilliseconds+"ms");
-				//sw.Stop();
 			}
 		}
 	}
@@ -76,13 +59,11 @@ public class AstarPathfinding : MonoBehaviour {
 		searchCode++;
 		if (searchCode>10)
 			searchCode = 0;
-		/*sw = new Stopwatch();
-		sw.Start();*/
 		getClosestWalkableNeighbor(targetNode,0);
-		//print ("GET CLOSEST TOOK: "+sw.ElapsedMilliseconds+"ms");
-		if (nearbyNodes.Count==0)
-			print ("EMPTY");
-		AstarNode nearbyNode = nearbyNodes.RemoveFirst();
+		AstarNode nearbyNode = null;
+		if (nearbyNodes.Count>0) {
+			nearbyNode = nearbyNodes.RemoveFirst();
+		}
 		targetNode = nearbyNode==null ? targetNode : nearbyNode;
 		StartEndPair sep = new StartEndPair();
 		sep.start = startPosition;

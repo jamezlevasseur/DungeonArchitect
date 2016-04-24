@@ -2,8 +2,9 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using System;
 
-class DigNodeManager : MonoBehaviour
+class DigNodeManager : MonoBehaviour, SerializableJSON
 {
 	public static DigNodeManager digNodeManager;
 
@@ -23,6 +24,8 @@ class DigNodeManager : MonoBehaviour
 	private AstarGrid astargrid;
 	private int gridRangeX,gridRangeZ;
 	private List<DigNode> unreachableJobs;
+	GameObject rootNode;
+	GameObject tileRoot;
 
 	public DigNodeManager() {
 		nodes = new DigNode[MAP_RANGE_X,MAP_RANGE_Z];
@@ -38,16 +41,57 @@ class DigNodeManager : MonoBehaviour
 		else
 			Destroy (gameObject);
 		astargrid = GameObject.Find("A*").GetComponent<AstarGrid>();
+		gridRangeX = MAP_RANGE_X/NODE_SCALE;
+		gridRangeZ = MAP_RANGE_Z/NODE_SCALE;
+		startPoint = transform.position;
+		rootNode = new GameObject ("DigNode ROOT");
+		tileRoot = new GameObject ("tile ROOT");
+	}
+
+	public DigNode.NodeType stringToType (string t) {
+		DigNode.NodeType ret = DigNode.NodeType.normal;
+		if (String.Equals(t, "gold", StringComparison.Ordinal)) {
+			ret = DigNode.NodeType.gold;
+		} else if (String.Equals(t, "undiggable", StringComparison.Ordinal)) {
+			ret = DigNode.NodeType.undiggable;
+		}
+		return ret;
+	}
+
+	public void addLoadedNode (Hashtable dict) {
+		string gridPos = (string)dict["gridPosition"];
+
+		Vector3 position = Utils.vector3FromString((string)dict["position"]);
+		GameObject newNodeObject = (GameObject)Instantiate(node, position, Quaternion.identity);
+		newNodeObject.transform.parent = rootNode.transform;
+		DigNode newNode = newNodeObject.GetComponent<DigNode>();
+		newNode.goldWorth = int.Parse((string)dict["gold"]);
+		newNode.ID = long.Parse((string)dict["id"]);
+		newNode.type = stringToType((string)dict["nodeType"]);
+		newNode.gridX = int.Parse(gridPos.Split(',')[0]);
+		newNode.gridY = int.Parse(gridPos.Split(',')[1]);
+		nodes[newNode.gridX,newNode.gridY] = newNode;
+
+		//place tiles
+		GameObject newtile = (GameObject) Instantiate(GameController.gamecontroller.GroundTile, position,Quaternion.identity);//new Vector3(startPoint.x+(k*NODE_SCALE),0,startPoint.z+(i*NODE_SCALE)), Quaternion.identity);
+		newtile.transform.parent = tileRoot.transform;
+	}
+
+	public void makeTiles () {
+		Vector3 worldBottomLeft = transform.position - Vector3.right * MAP_RANGE_X / 2 - Vector3.forward * MAP_RANGE_Z / 2;
+		for (int x = 0; x < gridRangeX; x++) {
+			for (int z = 0; z < gridRangeZ; z++) {
+				Vector3 position = worldBottomLeft + Vector3.right * (x * NODE_SCALE + NODE_RADIUS) + Vector3.forward * (z * NODE_SCALE + NODE_RADIUS);
+				//place tiles
+				GameObject newtile = (GameObject) Instantiate(GameController.gamecontroller.GroundTile, position,Quaternion.identity);//new Vector3(startPoint.x+(k*NODE_SCALE),0,startPoint.z+(i*NODE_SCALE)), Quaternion.identity);
+				newtile.transform.parent = tileRoot.transform;
+			}
+		}
 	}
 
 	//x and z dir will be multiplied by 10 for each direction
 	public void makeNodeMap (Vector3 startingPos) {
-
-		gridRangeX = MAP_RANGE_X/NODE_SCALE;
-		gridRangeZ = MAP_RANGE_Z/NODE_SCALE;
 		startPoint = startingPos;
-		GameObject rootNode = new GameObject ("DigNode ROOT");
-		GameObject tileRoot = new GameObject ("tile ROOT");
 		Vector3 worldBottomLeft = transform.position - Vector3.right * MAP_RANGE_X / 2 - Vector3.forward * MAP_RANGE_Z / 2;
 		for (int x = 0; x < gridRangeX; x++) {
 			for (int z = 0; z < gridRangeZ; z++) {
@@ -187,6 +231,21 @@ class DigNodeManager : MonoBehaviour
 			}
 			yield return new WaitForSeconds(2);
 		}
+	}
+
+	public string getData () {
+		Dictionary<object,object> dict = new Dictionary<object, object>();
+		string[] jsonNodes = new string[gridRangeX*gridRangeZ];
+		int count = 0;
+		for (int x = 0; x < gridRangeX; x++) {
+			for (int z = 0; z < gridRangeZ; z++) {
+				jsonNodes[count] = nodes[x,z].getData();
+				count++;
+			}
+		}
+		dict.Add("type","digNodeManager");
+		dict.Add("grid",Utils.ArrayToJSON(jsonNodes));
+		return Utils.DictionaryToJSON(dict);
 	}
 
 }

@@ -1,11 +1,81 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Utils : MonoBehaviour
 {
 	public static void makeMarker (float x, float z) {
 		GameObject.CreatePrimitive(PrimitiveType.Cylinder).transform.position = new Vector3(x,5,z);
+	}
+
+	public static Vector3 vector3FromString (string vecString) {
+		vecString = vecString.Replace("(","");
+		vecString = vecString.Replace(")","");
+		string[] s = vecString.Split(',');
+		return new Vector3(float.Parse(s[0]),float.Parse(s[1]),float.Parse(s[2]));
+	}
+
+	public static string DictionaryToJSON (Dictionary<object,object> d) {
+		string json = "{";
+		foreach (KeyValuePair<object,object> entry in d) {
+			Type valType = entry.Value.GetType();
+
+			if ( valType.IsGenericType && valType.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
+				json+= "\""+entry.Key+"\":"+DictionaryToJSON((Dictionary<object,object>)entry.Value)+",";
+			} else if (valType.IsArray) {
+				json+= "\""+entry.Key+"\":"+ArrayToJSON((Array)entry.Value)+",";
+			} else {
+				//string
+				if (valType == typeof(string)) {
+					string temp = (string)entry.Value;
+					if (String.Equals(temp.Substring(0,1), "{", StringComparison.Ordinal)) {
+						json+= "\""+entry.Key+"\":"+entry.Value+",";
+					} else {
+						json+= "\""+entry.Key+"\":\""+entry.Value+"\",";
+					}
+				} else {
+					json+= "\""+entry.Key+"\":\""+entry.Value+"\",";
+				}
+			}
+		}
+		return json.Substring(0,json.Length-1)+"}";
+	}
+
+	public static string ArrayToJSON (Array a) {
+		string json = "[";
+		foreach (object o in a) {
+			Type valType = o.GetType();
+			if ( valType.IsGenericType && valType.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
+				json+= DictionaryToJSON((Dictionary<object,object>)o)+",";
+			} else if (valType.IsArray) {
+				json+= ArrayToJSON((Array)o)+",";
+			} else {
+				//must be already a json string
+				json+= o+",";
+			}
+		}
+		return json.Substring(0,json.Length-1)+"]";
+	}
+
+	public static IComparable binSearch (IComparable needle, IComparable[] haystack) {
+		int lowerBound = 1;
+		int upperBound  = haystack.Length;
+		while (true) {
+			if (upperBound<lowerBound) {
+				break;
+			}
+			
+			int midPoint = lowerBound + ( upperBound - lowerBound ) / 2;
+			
+			if (haystack[midPoint].CompareTo(needle)<0)
+				upperBound = midPoint-1;
+			if (haystack[midPoint].CompareTo(needle)>0)
+				lowerBound = midPoint+1;
+			if (haystack[midPoint].CompareTo(needle)==0)
+				return haystack[midPoint];
+		}
+		return null;
 	}
 
 	static Texture2D _whiteTexture;

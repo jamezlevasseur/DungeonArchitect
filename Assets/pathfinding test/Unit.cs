@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class Unit : Selectable {
+public abstract class Unit : Saveable {
 
 	public Transform target;
 	protected float unitSpeed = 20f;
@@ -12,12 +12,20 @@ public class Unit : Selectable {
 	public void OnPathFound (Vector3[] newPath, bool pathSuccess) {
 		if (pathSuccess) {
 			path = newPath;
-			StopCoroutine("FollowPath");
-			StartCoroutine("FollowPath");
+			if (newPath.Length>0) {
+				StopCoroutine("FollowPath");
+				StartCoroutine("FollowPath");
+			}
+		} else {
+			print("EMPTY PATH");
 		}
 	}
 
 	IEnumerator FollowPath () {
+		if (path.Length==0) {
+			StopCoroutine("FollowPath");
+			yield break;
+		}
 		Vector3 currentWayPoint = path[0];
 		while (true) {
 			if (transform.position==currentWayPoint) {
@@ -50,9 +58,5 @@ public class Unit : Selectable {
 			}
 		}
 	}
-
-	public override void wasUnselected () {}
-	
-	public override void wasSelected () {}
 
 }

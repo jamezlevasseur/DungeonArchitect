@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
-public class GnollPeon : Worker {
+public class GnollPeon : Minion, Worker {
 
 	public static int foodCost = 2;
 
@@ -19,26 +20,28 @@ public class GnollPeon : Worker {
 	private string minionName;
 	
 	//public stats
-	public override int FoodCost { get {return foodCost;} }
-	public override int STR { get {return str;} }
-	public override int AGI { get {return agi;} }
-	public override int WIS { get {return wis;} }
-	public override int SPD { get {return spd;} }
-	public override int HP { get {return hp;} }
-	public override int TotalHP { get {return totalhp;} }
-	public override int ARM { get {return arm;} }
-	public override int Level { get {return level;} }
-	public override int EXP { get {return exp;} }
-	public override string ClassName { get {return className;} }
-	public override string MinionName { get {return minionName;} }
-	public override Texture MinionPicture { get {return minionPicture;} }
+	public override int FoodCost { get {return foodCost;} set {foodCost=value;} }
+	public override int STR { get {return str;} set {str=value;} }
+	public override int AGI { get {return agi;} set {agi=value;} }
+	public override int WIS { get {return wis;} set {wis=value;} }
+	public override int SPD { get {return spd;} set {spd=value;} }
+	public override int HP { get {return hp;} set {hp=value;} }
+	public override int TotalHP { get {return totalhp;} set {totalhp=value;} }
+	public override int ARM { get {return arm;} set {arm=value;} }
+	public override int Level { get {return level;} set {level=value;} }
+	public override int EXP { get {return exp;} set {exp=value;} }
+	public override string ClassName { get {return className;} set {className=value;} }
+	public override string MinionName { get {return minionName;} set {minionName=value;} }
+	public override Texture MinionPicture { get {return minionPicture;} set {minionPicture=value;} }
+	public override bool IsAssignedToStation { get{return isAssignedToStation;} set {isAssignedToStation=value;} }
 	
 	//public
 	public Texture minionPicture;
 	
 	//private
-	private bool isWorking,isDigging;
+	private bool isWorking,isDigging,isAssignedToStation;
 	private GameObject targetDigNode;
+	private Structure station;
 
 	protected override void Start () {
 		base.Start ();
@@ -47,7 +50,6 @@ public class GnollPeon : Worker {
 		setUnitText ();
 		volunteerToDig ();
 		base.reachedDestinationCallback = doNothing;
-		//base.pathingFailedCallback = 
 	}
 
 	void doNothing () {
@@ -56,7 +58,12 @@ public class GnollPeon : Worker {
 	
 	protected override void Update () {
 		base.Update ();
+	}
 
+	void OnMouseOver () {
+		if (Input.GetMouseButtonDown(1)) {
+
+		}
 	}
 	
 	protected override void initStats () {
@@ -78,11 +85,15 @@ public class GnollPeon : Worker {
 		
 	}
 	
-	public override void volunteerToDig () {
+	public void volunteerToDig () {
 		DigNodeManager.digNodeManager.diggers.Add (this);
 	}
 
-	public override bool canDig (GameObject nodeToDig) {
+	public void resignFromDig () {
+		DigNodeManager.digNodeManager.diggers.Remove (this);
+	}
+
+	public bool canDig (GameObject nodeToDig) {
 		if (isWorking)
 			return false;
 		Debug.Assert (nodeToDig != null);
@@ -98,17 +109,28 @@ public class GnollPeon : Worker {
 		yield return null;
 	}
 
-	public override void finishedDig() {
+	public void finishedDig() {
 
 	}
 
-	public override void cancelCurrentDigJob() {
+	public override void assertbgm ()
+	{
+		ButtonGridManager bgm = base.getMinionbgm();
+		ButtonGrid root = bgm.getGrid(0);
+		if (IsAssignedToStation) {
+			root.insertNewCallback(5,releaseFromStation,"quit work");
+		}
+		GameController.gamecontroller.Foreignbgm = bgm;
+		GameController.gamecontroller.LastSelectedType = GameController.SelectableTypes.Minion;
+	}
+
+	public void cancelCurrentDigJob() {
 		targetDigNode = null;
 		setupForNextDig ();
 		isDigging = false;
 	}
 
-	public override void setupForNextDig() {
+	public void setupForNextDig() {
 		targetDigNode = null;
 		isWorking = false;
 		//base.setupToWander ();
@@ -138,7 +160,7 @@ public class GnollPeon : Worker {
 		}
 		yield return null;
 		DigNodeManager.digNodeManager.updateGrid();
-		yield return new WaitForSeconds (.5f);
+		yield return new WaitForSeconds (2f);
 		setupForNextDig();
 		isDigging = false;
 		yield return null;
@@ -153,6 +175,7 @@ public class GnollPeon : Worker {
 			Debug.Log("FAILED JOB");
 			DigNodeManager.digNodeManager.failedJob(targetDigNode.GetComponent<DigNode>());
 			setupForNextDig();
+			isDigging = false;
 		}
 	}
 
@@ -162,6 +185,29 @@ public class GnollPeon : Worker {
 
 	public override void onDeath () {
 		DungeonResources.Food-=foodCost;
+	}
+	
+	public override string getData () {
+		Dictionary<object,object> dict = new Dictionary<object, object>();
+		dict.Add("type",GameController.GameObjectType.GnollPeon);
+		dict.Add("stats",statsJSON());
+		return Utils.DictionaryToJSON(dict);
+	}
+
+	public override void releaseFromStation () {
+		isAssignedToStation = false;
+		volunteerToDig();
+		station.minionLeftStation(this);
+		transform.position = GameController.safeSpawnPoint;
+	}
+
+	public override void assignToStation (Vector3 placeToGo, Structure _station) {
+		print ("ASSIGN TO NEW THING");
+		resignFromDig();
+		cancelCurrentDigJob();
+		transform.position = placeToGo;
+		station = _station;
+		isAssignedToStation = true;
 	}
 
 }

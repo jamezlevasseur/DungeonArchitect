@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
-public class DigNode : MonoBehaviour {
+public class DigNode : Saveable, SerializableJSON, GameID {
 
 	public enum NodeType {normal,gold,undiggable}
 	public NodeType type;
@@ -10,8 +11,13 @@ public class DigNode : MonoBehaviour {
 	public int goldWorth;
 	private Material selectedMat, unselectedMat;
 	private bool isSelected;
+	private long id;
+	public long ID {get{return id;}set{id=value;}}
 
-	void Start () {
+	protected override void Start () {
+		base.Start();
+		if (id==0)
+			id = GameController.getID();
 		int nodeType = Random.Range (1, 101);
 		if (nodeType <= 10) {
 			type = NodeType.undiggable;
@@ -42,22 +48,34 @@ public class DigNode : MonoBehaviour {
 			gameObject.GetComponent<MeshRenderer>().material = unselectedMat;
 		}
 	}
-
-	IEnumerator selfDestruct () {
-		yield return null;
-		DigNodeManager.digNodeManager.digJobs.Remove (this);
-		Destroy (gameObject);
-	}
-
+	
 	public void dig () {
 		if (type == NodeType.undiggable)
 			return;
 		DigNodeManager.digNodeManager.digJobs.Remove (this);
+		Saveable.all.Remove(this);
 		Destroy (gameObject);
 	}
 
 	public void forceDig () {
 		Destroy (gameObject);
+	}
+
+	public override string getData () {
+		Dictionary<object,object> dict = new Dictionary<object, object>();
+		dict.Add("type",GameController.GameObjectType.DigNode);
+		dict.Add("nodeType",type);
+		dict.Add("position",transform.position.ToString());
+		dict.Add("gridPosition",gridX+","+gridY);
+		dict.Add("gold",goldWorth);
+		dict.Add("id",id);
+		return Utils.DictionaryToJSON(dict);
+	}
+
+	public override void syncStats (Hashtable stats)
+	{
+		//dig node manager handles this
+		throw new System.NotImplementedException ();
 	}
 
 }

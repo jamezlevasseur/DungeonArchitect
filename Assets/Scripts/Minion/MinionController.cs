@@ -16,7 +16,7 @@ public class MinionController : MonoBehaviour {
 
 	private List<Minion> allUnits;
 	private List<Minion> unselectedUnits;
-	private List<Minion> selectedUnits;
+	public List<Minion> selectedUnits;
 	
 	/** Determines if the target position should be updated every frame or only on double-click */
 	private bool onlyOnDoubleClick;
@@ -47,7 +47,10 @@ public class MinionController : MonoBehaviour {
 		if (onlyOnDoubleClick && cam != null && Event.current.type == EventType.MouseDown && Event.current.clickCount == 2) {
 			UpdateTargetPosition ();
 		} else if (onlyOnDoubleClick && cam != null && Event.current.type == EventType.MouseDown && Event.current.button == 1 && !ObjectSetter.isSetting) {
-			deselectUnits();
+			Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
+			if (!Physics.Raycast (mouseRay, 100f, 1<<10)) {
+				deselectUnits();
+			}
 		}
 		if( isSelecting )
 		{

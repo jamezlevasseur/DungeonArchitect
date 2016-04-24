@@ -48,34 +48,37 @@
      <Compile Include="Assets\DungeonTools\Scripts\DRId.cs" />
      <Compile Include="Assets\IMPORTS\KnightInChainMail\MyScripts\Mecanim_Control_melee.cs" />
      <Compile Include="Assets\IMPORTS\Minotaur\Script\RotateObject.cs" />
+     <Compile Include="Assets\JSON Tests\CSharp\Test_CSharp.cs" />
      <Compile Include="Assets\Scripts\AutoSpawner.cs" />
      <Compile Include="Assets\Scripts\DigNode.cs" />
      <Compile Include="Assets\Scripts\DigNodeManager.cs" />
      <Compile Include="Assets\Scripts\GameController.cs" />
+     <Compile Include="Assets\Scripts\GameID.cs" />
      <Compile Include="Assets\Scripts\GraphicalAssets.cs" />
      <Compile Include="Assets\Scripts\KoolKatDebugger.cs" />
      <Compile Include="Assets\Scripts\MC_controller.cs" />
      <Compile Include="Assets\Scripts\Minion\GnollPeon.cs" />
      <Compile Include="Assets\Scripts\Minion\Minion.cs" />
      <Compile Include="Assets\Scripts\Minion\MinionController.cs" />
-     <Compile Include="Assets\Scripts\Minion\MinionProtocolManager.cs" />
      <Compile Include="Assets\Scripts\Minion\Warlord.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Crafter.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\DungeonLord.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Loner.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Prisoner.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Scholar.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Warden.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Worker.cs" />
-     <Compile Include="Assets\Scripts\Minion\minion subclasses\Worshipper.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Crafter.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\DungeonLord.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Loner.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Prisoner.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Scholar.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Warden.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Worker.cs" />
+     <Compile Include="Assets\Scripts\Minion\minion interfaces\Worshipper.cs" />
      <Compile Include="Assets\Scripts\ObjectSetter.cs" />
      <Compile Include="Assets\Scripts\RT_DT\RT_DGCore.cs" />
      <Compile Include="Assets\Scripts\RT_DT\RT_DGCustomClasses.cs" />
      <Compile Include="Assets\Scripts\RT_DT\RT_DGMap.cs" />
      <Compile Include="Assets\Scripts\RT_DT\RT_DGRoomClass.cs" />
      <Compile Include="Assets\Scripts\RT_DT\RT_DRCustomEditor.cs" />
+     <Compile Include="Assets\Scripts\Saveable.cs" />
      <Compile Include="Assets\Scripts\Selectable.cs" />
-     <Compile Include="Assets\Scripts\Structure\Portal.cs" />
+     <Compile Include="Assets\Scripts\SerializableJSON.cs" />
+     <Compile Include="Assets\Scripts\Structure\Farm.cs" />
      <Compile Include="Assets\Scripts\Structure\Structure.cs" />
      <Compile Include="Assets\Scripts\Structure\StructureController.cs" />
      <Compile Include="Assets\Scripts\UI.cs" />
@@ -94,6 +97,7 @@
      <None Include="Assets\Standard Assets\Environment\Water\Water\Shaders\FXWaterPro.shader" />
      <None Include="Assets\Standard Assets\Environment\Water\Water4\Shaders\WaterInclude.cginc" />
      <None Include="Assets\Standard Assets\Environment\Water\Water4\Shaders\FXWater4Advanced.shader" />
+     <None Include="Assets\JSON Tests\TroubleShoot.txt" />
  <Reference Include="Assembly-UnityScript-firstpass">
  <HintPath>/Users/jameslevasseur/Desktop/dungeon architect/Library/ScriptAssemblies/Assembly-UnityScript-firstpass.dll</HintPath>
  </Reference>
@@ -108,6 +112,9 @@
  </Reference>
  <Reference Include="UnityEngine.Analytics">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/UnityAnalytics/UnityEngine.Analytics.dll</HintPath>
+ </Reference>
+ <Reference Include="ICSharpCode.SharpZipLib">
+ <HintPath>/Users/jameslevasseur/Desktop/dungeon architect/Assets/plugins/ICSharpCode.SharpZipLib.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.iOS.Extensions.Xcode">
  <HintPath>/Applications/Unity/Unity.app/Contents/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.Xcode.dll</HintPath>
