@@ -29,7 +29,7 @@ public class Farm : Structure {
 		StartCoroutine("foodTick");
 	}
 
-	void OnDestroy () {
+	protected override void OnDestroy () {
 		farms.Remove(this);
 	}
 

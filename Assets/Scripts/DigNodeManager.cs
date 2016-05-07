@@ -227,6 +227,10 @@ class DigNodeManager : MonoBehaviour, SerializableJSON
 					Debug.Log( e.Message );
 					keepLooping = false;
 					break;
+				} catch (MissingReferenceException e) {
+					Debug.Log( e.Message );
+					keepLooping = false;
+					break;
 				}
 			}
 			yield return new WaitForSeconds(2);

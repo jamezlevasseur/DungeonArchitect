@@ -88,6 +88,6 @@ public class ObjectSetter : MonoBehaviour {
 		if (Physics.Raycast (mouseRay, out hit, 100f, 1 << 8)) {
 
 		}
-		transform.position = new Vector3(hit.point.x,1,hit.point.z);
+		transform.position = new Vector3(hit.point.x,1.1f,hit.point.z);
 	}
 }

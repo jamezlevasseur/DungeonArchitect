@@ -14,8 +14,8 @@ public class MinionController : MonoBehaviour {
 	
 	public Transform target;
 
-	private List<Minion> allUnits;
-	private List<Minion> unselectedUnits;
+	public List<Minion> allUnits;
+	public List<Minion> unselectedUnits;
 	public List<Minion> selectedUnits;
 	
 	/** Determines if the target position should be updated every frame or only on double-click */
@@ -75,11 +75,15 @@ public class MinionController : MonoBehaviour {
 		// If we let go of the left mouse button, end selection
 		if (Input.GetMouseButtonUp (0)) {
 			for (int i=0; i<unselectedUnits.Count; i++) {
-				if (IsWithinSelectionBounds(unselectedUnits[i].gameObject)) {
-					selectedUnits.Add(unselectedUnits[i]);
-					unselectedUnits[i].wasSelected();
-					unselectedUnits.RemoveAt(i);
-					i--;
+				try {
+					if (IsWithinSelectionBounds(unselectedUnits[i].gameObject)) {
+						selectedUnits.Add(unselectedUnits[i]);
+						unselectedUnits[i].wasSelected();
+						unselectedUnits.RemoveAt(i);
+						i--;
+					}
+				} catch (MissingReferenceException e) {
+					print (e.Message);
 				}
 			}
 			isSelecting = false;

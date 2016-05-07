@@ -15,13 +15,15 @@ public class GameController : MonoBehaviour {
 	private long idCount;
 	DigNodeManager digNodeManager;
 	public const int TOP_MENU_X = 10;
+	public const int MOUTH_X_MOD = 50;
 
 	public enum SelectableTypes {Structure, Minion, Room, None};
 	public enum DungeonLordType {Warlord, GrandNecromancer};
-	public enum GameObjectType {DigNode,GnollPeon,Warlord,Farm};
+	public enum GameObjectType {DigNode,GnollPeon,Warlord,Farm,Orc,Adventurer};
 
-	private bool onMainMenu, onInGameMenu, chooseDungeonLord, onLoadingScreen, playingGame;
-	private int loadingPercent;
+	private bool onMainMenu, onInGameMenu, chooseDungeonLord, onLoadingScreen, playingGame, onRaidScreen, showRaidReward, gameOver;
+	private int loadingPercent,raidGold,infamy, gameOverTimer;
+	private float infamyCheck;
 	private DungeonLordType dungeonLordType;
 	private GameObject dgRoot;
 	private ButtonGridManager bgm, foreignbgm;
@@ -36,12 +38,12 @@ public class GameController : MonoBehaviour {
 	public GameObject menuCamera, GroundTile, player, placer;
 
 	//minions
-	public GameObject WarlordPrefab, GrandNecromancerPrefab, GnollPeonPrefab;
+	public GameObject WarlordPrefab, GrandNecromancerPrefab, GnollPeonPrefab, OrcPrefab, AdventurerPrefab, MouthPrefab;
 
 	//structures
 	public GameObject FarmPrefab, ThronePrefab;
 
-	public GUISkin menuSkin, topMenuSkin, bottomRightMenuSkin, bottomMiddleMenuSkin, bottomMenuBorderSkin, buttonBGSkin;
+	public GUISkin menuSkin, topMenuSkin, bottomRightMenuSkin, bottomMiddleMenuSkin, bottomMenuBorderSkin, buttonBGSkin, mapSkin;
 
 	public void Awake () {
 
@@ -69,6 +71,8 @@ public class GameController : MonoBehaviour {
 		//minion grid
 		ButtonGrid minionGrid = new ButtonGrid ();
 		minionGrid.insertNewCallback (1,placeGnollPeon,"place gnoll peon");
+		minionGrid.insertNewCallback (2,placeOrc,"place orc");
+		//minionGrid.insertNewCallback (4,placeAdventurer,"place adventurer");
 
 		//root grid
 		ButtonGrid rootGrid = new ButtonGrid ();
@@ -77,7 +81,47 @@ public class GameController : MonoBehaviour {
 		bgm = new ButtonGridManager (rootGrid);
 		bgm.insertButtonGrid(structureGrid);
 		bgm.insertButtonGrid(minionGrid);
+		DungeonResources.Gold = 15;
+	}
 
+	void Update () {
+		if (Time.time-infamyCheck>10) {
+			print (infamyCheck);
+			infamyCheck = Time.time;
+			int chance = UnityEngine.Random.Range(1,11);
+			if (infamy>80) {
+				if (chance<9) {
+					spawnDungeonWave(4);
+				}
+				infamy-=10;
+			} else if (infamy>60) {
+				if (chance<7) {
+					spawnDungeonWave(4);
+				}
+				infamy-=5;
+			} else if (infamy>40) {
+				if (chance<5) {
+					spawnDungeonWave(4);
+				}
+				infamy-=5;
+			} else if (infamy>20) {
+				if (chance<3) {
+					spawnDungeonWave(4);
+				}
+				infamy-=5;
+			}
+		}
+	}
+
+	void spawnDungeonWave (int amount) {
+		for (int i=0;i<amount; i++) {
+			Instantiate(AdventurerPrefab,new Vector3(transform.position.x+MOUTH_X_MOD-10,.5f,transform.position.z), Quaternion.identity);
+		}
+	}
+
+	void placeAdventurer () {
+		ObjectSetter.toSet = AdventurerPrefab;
+		Instantiate (placer);
 	}
 
 	void placeFarm() {
@@ -85,12 +129,22 @@ public class GameController : MonoBehaviour {
 		Instantiate (placer);
 	}
 
+	void placeOrc() {
+		if (DungeonResources.FoodLimit>DungeonResources.Food+Orc.foodCost && DungeonResources.Gold>=5) {
+			ObjectSetter.toSet = OrcPrefab;
+			Instantiate (placer);
+			DungeonResources.Gold-=5;
+		} else {
+			//alert use to issue
+		}
+
+	}
+
 	void placeGnollPeon() {
-		ObjectSetter.toSet = GnollPeonPrefab;
-		Instantiate (placer);
-		if (DungeonResources.FoodLimit<DungeonResources.Food+GnollPeon.foodCost) {
+		if (DungeonResources.FoodLimit>DungeonResources.Food+GnollPeon.foodCost && DungeonResources.Gold>=2) {
 			ObjectSetter.toSet = GnollPeonPrefab;
 			Instantiate (placer);
+			DungeonResources.Gold-=2;
 		} else {
 			//alert use to issue
 		}
@@ -116,14 +170,20 @@ public class GameController : MonoBehaviour {
 		GUI.Box (new Rect (0, 0, 10, 10), "");
 	}
 
+	public void launchRaidScreen() {
+		onRaidScreen = true;
+	}
+
 	public static void minionContentualMenu (Minion minion) {
-		GUI.Label (new Rect (250, 20, 200, 20), minion.MinionName);
+		GUI.Label (new Rect (250, 20, 200, 20), minion.UnitName);
 		GUI.Label (new Rect (250, 40, 200, 20), "Level "+minion.Level+" "+minion.ClassName);
+		GUI.Label (new Rect (250, 60, 200, 20), "Health: "+minion.HP+"/"+minion.TotalHP);
+		GUI.Label (new Rect (250, 80, 200, 20), "Exp: "+minion.EXP+"/100");
 		GUI.Label (new Rect (500, 60, 200, 20), "STR: "+minion.STR);
 		GUI.Label (new Rect (500, 80, 200, 20), "AGI: "+minion.AGI);
 		GUI.Label (new Rect (500, 100, 200, 20), "WIS: "+minion.WIS);
 		GUI.Label (new Rect (500, 120, 200, 20), "Armor: "+minion.ARM);
-		GUI.DrawTexture (new Rect (10, 10, 150, 150), minion.MinionPicture);
+		//GUI.DrawTexture (new Rect (10, 10, 150, 150), minion.UnitPicture);
 	}
 
 	IEnumerator initGame () {
@@ -132,7 +192,9 @@ public class GameController : MonoBehaviour {
 		digNodeManager.makeNodeMap (transform.position);
 		loadingPercent = 35;
 		digNodeManager.cutOutSpace (transform.position, 15);
+		digNodeManager.cutOutSpace (new Vector3(transform.position.x+MOUTH_X_MOD,.5f,transform.position.z), 15);
 		Instantiate (ThronePrefab, new Vector3(transform.position.x,.5f,transform.position.z), Quaternion.identity);
+		Instantiate (MouthPrefab, new Vector3(transform.position.x+MOUTH_X_MOD,.5f,transform.position.z), Quaternion.identity);
 		Instantiate (player);
 		loadingPercent = 50;
 		Camera.main.transform.position = new Vector3 (transform.position.x, Camera.main.transform.position.y, transform.position.z-20);
@@ -219,7 +281,14 @@ public class GameController : MonoBehaviour {
 	void OnGUI () {
 		int sHeight = Screen.height;
 		int sWidth = Screen.width;
-		if (onMainMenu) {
+		if (gameOver) {
+			GUI.skin = menuSkin;
+			GUI.Box(new Rect(0,0,sWidth,sHeight),"");
+			GUI.Label(new Rect(sWidth/2-150,400,450,70),"Game Over");
+			if (Time.time-gameOverTimer>4) {
+				Application.LoadLevel(0);
+			}
+		} else if (onMainMenu) {
 			GUI.skin = menuSkin;
 			GUI.Label(new Rect(sWidth/2-350,20,750,70),"Dungeon Architect");
 			if (GUI.Button(new Rect(sWidth/2-250,200,500,70),"Start")) {
@@ -273,6 +342,58 @@ public class GameController : MonoBehaviour {
 			if (GUI.Button(new Rect(sWidth/7*4,200,400,400),"Grand Necromancer")) {
 
 			}
+		} else if (onRaidScreen) {
+			GUI.skin = mapSkin;
+			GUI.BeginGroup(new Rect(100,50,1024,700));
+			GUI.Box(new Rect(0,0,1024,700),GraphicalAssets.graphicalAssets.raidMap);
+			GUI.Label(new Rect(230,430,200,50), "Easy");
+			if (GUI.Button(new Rect(230,350,50,50), "")) {
+				raidGold = doRaid (Orc.Orcs.Count, 1);
+				showRaidReward = true;
+				onRaidScreen = false;
+			}
+			GUI.Label(new Rect(390,80,200,50), " Medium");
+			if (GUI.Button(new Rect(400,0,50,50), "")) {
+				raidGold = doRaid (Orc.Orcs.Count, 2);
+				showRaidReward = true;
+				onRaidScreen = false;
+			}
+			GUI.Label(new Rect(50,370,200,50), "Hard");
+			if (GUI.Button(new Rect(50,400,50,50), "")) {
+				raidGold = doRaid (Orc.Orcs.Count, 3);
+				showRaidReward = true;
+				onRaidScreen = false;
+			}
+			GUI.Label(new Rect(800,400,200,50), "Very Hard");
+			if (GUI.Button(new Rect(800,350,50,50), "")) {
+				raidGold = doRaid (Orc.Orcs.Count, 4);
+				showRaidReward = true;
+				onRaidScreen = false;
+			}
+			if (GUI.Button(new Rect(800,600,100,50), "close")) {
+				onRaidScreen = false;
+			}
+			GUI.skin = menuSkin;
+			if (Orc.Orcs==null)
+				GUI.Label(new Rect(50,600,900,200),"Raiding Orcs: 0");
+			else
+				GUI.Label(new Rect(50,600,900,200),"Raiding Orcs: "+Orc.Orcs.Count);
+			GUI.EndGroup();
+		} else if (showRaidReward) {
+			GUI.skin = menuSkin;
+			GUI.BeginGroup(new Rect(sWidth/2-sWidth/8,sHeight/4,sWidth/3+50,sHeight/4*2));
+			GUI.Box(new Rect(0,0,sWidth/3,sHeight/4*2),"");
+			if (raidGold==0) {
+				GUI.Label(new Rect(0,50,sWidth/3+50,170),"Raid Failed!");
+			} else {
+				GUI.Label(new Rect(50,50,sWidth/3+50,170),"Raided "+raidGold+" gold!");
+			}
+			if(GUI.Button(new Rect(250,300,200,100),"close")) {
+				DungeonResources.Gold+=raidGold;
+				raidGold = 0;
+				showRaidReward=false;
+			}
+			GUI.EndGroup();
 		} else if (playingGame) {
 			//TOP MENU
 			GUI.skin = topMenuSkin;
@@ -366,12 +487,53 @@ public class GameController : MonoBehaviour {
 			//RESOURCES MENU, TOP RIGHT
 			
 			GUI.BeginGroup (new Rect(sWidth - sWidth / 4, 0, sWidth / 4, 20));
-
-			GUI.Label (new Rect (10, 0, 50, 20), "Gold: " + DungeonResources.Gold);
+			GUI.Label (new Rect (200, 0, 200, 20), "Infamy: " + infamy);
+			GUI.Label (new Rect (10, 0, 200, 20), "Gold: " + DungeonResources.Gold);
 			GUI.Label (new Rect (100, 0, 150, 20), "Food: " + DungeonResources.Food + " / " + DungeonResources.FoodLimit);
 			GUI.EndGroup ();
 		} 
 
+	}
+
+	public void runGameOver () {
+		gameOver = true;
+		gameOverTimer = (int)Time.time;
+	}
+
+	int doRaid (int orcs, int targetStrength) {
+		print (orcs);
+		int chance = 0;
+		switch (targetStrength) {
+		case 1:
+			chance = UnityEngine.Random.Range(0,3);
+			infamy+=10;
+			if (orcs>=chance) {
+				return UnityEngine.Random.Range(5,30);
+			}
+			break;
+		case 2:
+			chance = UnityEngine.Random.Range(3,6);
+			infamy+=20;
+			if (orcs>=chance) {
+				return UnityEngine.Random.Range(25,50);
+			}
+			break;
+		case 3:
+			chance = UnityEngine.Random.Range(6,9);
+			infamy+=30;
+			if (orcs>=chance) {
+				return UnityEngine.Random.Range(45,60);
+			}
+			break;
+		case 4:
+			chance = UnityEngine.Random.Range(9,12);
+			infamy+=40;
+			if (orcs>=chance) {
+				return UnityEngine.Random.Range(55,80);
+			}
+			break;
+		}
+		return 0;
 	}
 
 }

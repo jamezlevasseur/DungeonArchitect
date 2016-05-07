@@ -3,8 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 public abstract class Structure : Saveable, Selectable, SerializableJSON, GameID {
-
-	protected long id;
+	
 	public long ID {get{return id;}}
 
 	protected override void Start () {

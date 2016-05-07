@@ -6,83 +6,35 @@ public class GnollPeon : Minion, Worker {
 
 	public static int foodCost = 2;
 
-	//stats
-	private int str;
-	private int agi;
-	private int wis;
-	private int spd;
-	private int hp;
-	private int totalhp;
-	private int arm;
-	private int level;
-	private int exp;
-	private string className;
-	private string minionName;
-	
-	//public stats
 	public override int FoodCost { get {return foodCost;} set {foodCost=value;} }
-	public override int STR { get {return str;} set {str=value;} }
-	public override int AGI { get {return agi;} set {agi=value;} }
-	public override int WIS { get {return wis;} set {wis=value;} }
-	public override int SPD { get {return spd;} set {spd=value;} }
-	public override int HP { get {return hp;} set {hp=value;} }
-	public override int TotalHP { get {return totalhp;} set {totalhp=value;} }
-	public override int ARM { get {return arm;} set {arm=value;} }
-	public override int Level { get {return level;} set {level=value;} }
-	public override int EXP { get {return exp;} set {exp=value;} }
-	public override string ClassName { get {return className;} set {className=value;} }
-	public override string MinionName { get {return minionName;} set {minionName=value;} }
-	public override Texture MinionPicture { get {return minionPicture;} set {minionPicture=value;} }
-	public override bool IsAssignedToStation { get{return isAssignedToStation;} set {isAssignedToStation=value;} }
-	
-	//public
-	public Texture minionPicture;
-	
+
 	//private
-	private bool isWorking,isDigging,isAssignedToStation;
+	private bool isWorking,isDigging;
 	private GameObject targetDigNode;
-	private Structure station;
+
 
 	protected override void Start () {
 		base.Start ();
 		onSpawn ();
 		initStats ();
-		setUnitText ();
 		volunteerToDig ();
 		base.reachedDestinationCallback = doNothing;
 	}
 
-	void doNothing () {
-
-	}
-	
-	protected override void Update () {
-		base.Update ();
-	}
-
-	void OnMouseOver () {
-		if (Input.GetMouseButtonDown(1)) {
-
-		}
-	}
-	
 	protected override void initStats () {
-		str = Minion.getStartingStat (Minion.MinionStatDescriptor.Strong);
-		agi = Minion.getStartingStat (Minion.MinionStatDescriptor.Strong);
-		wis = Minion.getStartingStat (Minion.MinionStatDescriptor.Strong);
-		spd = Minion.getStartingStat (Minion.MinionStatDescriptor.Strong);
-		arm = Minion.getStartingStat (Minion.MinionStatDescriptor.Strong);
-		totalhp = Minion.getStartingHP (Minion.MinionStatDescriptor.Strong);
+		unitFaction = Faction.Neutral;
+		myWeapon = WeaponObject.GetComponent<Weapon>();
+		defaultAttack = new MeleeAttack(myWeapon, this);
+		str = getStartingStat (UnitStatDescriptor.Strong);
+		agi = getStartingStat (UnitStatDescriptor.Strong);
+		wis = getStartingStat (UnitStatDescriptor.Strong);
+		spd = getStartingStat (UnitStatDescriptor.Strong);
+		arm = getStartingStat (UnitStatDescriptor.Strong);
+		totalhp = getStartingHP (UnitStatDescriptor.Strong);
 		hp = totalhp;
 		className = "Gnoll Peon";
-		minionName = "Gnoll Peon #"+Random.Range(1,5001);
+		unitName = "Gnoll Peon #"+Random.Range(1,5001);
 		level = Minion.STARTING_LEVEL;
-	}
-	
-	protected override void setUnitText () {
-		GUIText miniontext = (GUIText) gameObject.AddComponent<GUIText> ();
-		miniontext.text = minionName+" – Level: "+level;
-		
 	}
 	
 	public void volunteerToDig () {
@@ -104,7 +56,7 @@ public class GnollPeon : Minion, Worker {
 	}
 
 	IEnumerator goToDigNode () {
-		gnollPeonGoTo (targetDigNode.transform.position);
+		goTo (targetDigNode.transform.position);
 		base.arrivedAtDestinationCallback = arrivedAtDigNode;
 		yield return null;
 	}
@@ -133,12 +85,6 @@ public class GnollPeon : Minion, Worker {
 	public void setupForNextDig() {
 		targetDigNode = null;
 		isWorking = false;
-		//base.setupToWander ();
-	}
-
-	public void gnollPeonGoTo (Vector3 targetPosition) {
-		canWander = false;
-		PathRequestManager.RequestPath (transform.position,targetPosition, digPathFound);
 	}
 
 	void arrivedAtDigNode () {
@@ -167,6 +113,7 @@ public class GnollPeon : Minion, Worker {
 	}
 
 	public void digPathFound(Vector3[] newPath, bool pathSuccess) {
+		print ("DIGPATHFOUND");
 		if (pathSuccess) {
 			base.path = newPath;
 			StopCoroutine("FollowPath");
@@ -209,5 +156,9 @@ public class GnollPeon : Minion, Worker {
 		station = _station;
 		isAssignedToStation = true;
 	}
+
+	//combat stuff
+
+	public override bool attack() {return false;}
 
 }

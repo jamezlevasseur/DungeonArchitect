@@ -11,7 +11,6 @@ public class DigNode : Saveable, SerializableJSON, GameID {
 	public int goldWorth;
 	private Material selectedMat, unselectedMat;
 	private bool isSelected;
-	private long id;
 	public long ID {get{return id;}set{id=value;}}
 
 	protected override void Start () {

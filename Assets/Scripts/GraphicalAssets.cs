@@ -7,6 +7,9 @@ public class GraphicalAssets : MonoBehaviour {
 	public Texture defaultIcon;
 	public Texture minionIcon;
 	public Texture structureIcon;
+	public Texture raidMap;
+	public Material damagedMaterial;
+	public GameObject levelupParticleEffect;
 
 	void Awake () {
 		if (GraphicalAssets.graphicalAssets == null)

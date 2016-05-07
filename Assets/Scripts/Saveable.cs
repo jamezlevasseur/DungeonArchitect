@@ -7,7 +7,6 @@ public abstract class Saveable : MonoBehaviour, SerializableJSON, IComparable {
 
 	public static List<Saveable> all;
 	public long id;
-	// 140, 100
 
 	void Awake () {
 		if (all==null)
